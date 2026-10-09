@@ -39,6 +39,8 @@ export default function CustomerApp() {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [partnerAssigned, setPartnerAssigned] = useState(false);
+  const [carMoving, setCarMoving] = useState(false);
   const [riderRating, setRiderRating] = useState(0);
   const [foodRating, setFoodRating] = useState(0);
   const TOTAL_TRACKING_SECONDS = 60; // 60 seconds for the simulation
@@ -55,6 +57,32 @@ export default function CustomerApp() {
         );
       }
       
+      let movingTimer: NodeJS.Timeout;
+      const partnerTimer = setTimeout(() => {
+        setPartnerAssigned(true);
+        movingTimer = setTimeout(() => {
+          setCarMoving(true);
+        }, 4000);
+      }, 25000);
+
+      return () => {
+        clearTimeout(partnerTimer);
+        clearTimeout(movingTimer);
+      };
+    } else {
+      setEta(INITIAL_ETA);
+      setMapCenter('New York');
+      setShowFeedback(false);
+      setFeedbackSubmitted(false);
+      setPartnerAssigned(false);
+      setCarMoving(false);
+      setRiderRating(0);
+      setFoodRating(0);
+    }
+  }, [isTracking]);
+
+  useEffect(() => {
+    if (isTracking && carMoving) {
       // Sync ETA reduction perfectly with the 60s route animation
       // 12 mins -> 0 mins over 60 seconds = 1 min reduction every 5 seconds
       const interval = setInterval(() => {
@@ -62,14 +90,8 @@ export default function CustomerApp() {
       }, (TOTAL_TRACKING_SECONDS / INITIAL_ETA) * 1000); 
       
       return () => clearInterval(interval);
-    } else {
-      setEta(INITIAL_ETA);
-      setMapCenter('New York');
-      setShowFeedback(false);
-      setRiderRating(0);
-      setFoodRating(0);
     }
-  }, [isTracking]);
+  }, [isTracking, carMoving]);
 
   useEffect(() => {
     if (isTracking && eta === 0 && !showFeedback) {
@@ -614,7 +636,7 @@ export default function CustomerApp() {
               ></iframe>
               
               {/* Simulated Live Tracking Path (SVG) with STRICT Rider Motion */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 100 1150 800" preserveAspectRatio="xMidYMid meet">
+              <svg key={carMoving ? 'moving' : 'static'} className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 100 1150 800" preserveAspectRatio="xMidYMid meet">
                 <path 
                   id="deliveryRoute"
                   d="M 150,750 L 150,550 L 350,550 L 350,350 L 550,350 L 550,250 L 850,250 L 850,450 L 1000,450" 
@@ -648,7 +670,7 @@ export default function CustomerApp() {
                 </g>
 
                 {/* Top-down vehicle perfectly following and rotating along the path */}
-                <g>
+                <g transform={!carMoving ? "translate(150, 750) rotate(-90)" : ""}>
                   <foreignObject x="-24" y="-12" width="48" height="24">
                     <div className="w-full h-full bg-[#1A1A1A] rounded-md shadow-2xl border border-gray-700 relative">
                        {/* Windshield */}
@@ -662,9 +684,11 @@ export default function CustomerApp() {
                        <div className="absolute left-0 bottom-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
                     </div>
                   </foreignObject>
-                  <animateMotion dur="60s" repeatCount="1" fill="freeze" rotate="auto">
-                    <mpath href="#deliveryRoute" />
-                  </animateMotion>
+                  {carMoving && (
+                    <animateMotion dur="60s" repeatCount="1" fill="freeze" rotate="auto">
+                      <mpath href="#deliveryRoute" />
+                    </animateMotion>
+                  )}
                 </g>
               </svg>
             </div>
@@ -674,7 +698,11 @@ export default function CustomerApp() {
               <div className="bg-white rounded-[2rem] p-6 shadow-2xl border border-gray-100 flex flex-col gap-5">
                 <div>
                   <h3 className="text-xl font-bold text-black tracking-tight mb-1">Your order is {eta} min away</h3>
-                  <p className="text-sm font-medium text-gray-500 flex items-center gap-2">License Plate: <span className="bg-gray-100 px-2 py-0.5 rounded font-mono font-bold text-gray-700">MH 12 AB 1234</span></p>
+                  {partnerAssigned ? (
+                    <p className="text-sm font-medium text-gray-500 flex items-center gap-2 animate-[reveal_0.4s_ease-out]">License Plate: <span className="bg-gray-100 px-2 py-0.5 rounded font-mono font-bold text-gray-700 border border-gray-200">MH 12 AB 1234</span></p>
+                  ) : (
+                    <p className="text-sm font-bold text-yellow-600 flex items-center gap-2 animate-pulse">Waiting for delivery partner to be assigned...</p>
+                  )}
                 </div>
 
                 <div className="bg-gray-50 rounded-[1.5rem] p-5 border border-gray-100 flex flex-col gap-6 relative">
