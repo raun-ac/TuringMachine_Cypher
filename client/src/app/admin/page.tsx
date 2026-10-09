@@ -96,39 +96,64 @@ export default function AdminDashboard() {
 
           {/* Live Feed */}
           <div className="animate-reveal delay-200 flex flex-col h-full">
-            <h3 className="text-4xl font-medium tracking-tight mb-8">Activity Feed</h3>
+            <h3 className="text-4xl font-medium tracking-tight mb-8">Ingredient Stacks Feed</h3>
             <div className="flex-1 bg-white/40 rounded-3xl p-6 overflow-hidden flex flex-col">
-              <div className="space-y-4 flex-1 overflow-y-auto pr-4">
+              <div className="space-y-6 flex-1 overflow-y-auto pr-4">
                 {state.orders.length === 0 ? (
                   <div className="h-full flex items-center justify-center">
                      <p className="text-2xl font-medium text-black/30 text-center">No activity yet.<br/>Waiting for orders...</p>
                   </div>
                 ) : (
-                  state.orders.map((order, i) => (
-                    <div 
-                      key={order.id} 
-                      className={`p-5 rounded-2xl transition-all duration-500 ${i === 0 ? 'bg-black text-white scale-100 shadow-xl' : 'bg-black/5 text-black'}`}
-                    >
-                      <div className="flex justify-between items-start mb-3">
+                  state.orders.map((order, i) => {
+                    const hasSub = order.items.some(it => it.substituted);
+                    
+                    return (
+                      <div 
+                        key={order.id} 
+                        className={`p-6 rounded-3xl transition-all duration-500 ${i === 0 ? 'bg-black text-white scale-100 shadow-xl' : 'bg-white border border-black/10 text-black'}`}
+                      >
+                        <div className="flex justify-between items-start mb-4 pb-4 border-b border-current border-opacity-10">
+                          <div>
+                            <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${i === 0 ? 'text-white/50' : 'text-black/40'}`}>
+                              {new Date(order.timestamp).toLocaleTimeString()} • {order.status}
+                            </p>
+                            <p className="font-medium text-2xl">{order.recipe} (x{order.portions})</p>
+                          </div>
+                          <span className={`text-xl font-medium block ${i === 0 ? 'text-[#D4E5F2]' : ''}`}>
+                            ${order.price.toFixed(2)}
+                          </span>
+                        </div>
+                        
                         <div>
-                          <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${i === 0 ? 'text-white/50' : 'text-black/40'}`}>
-                            {new Date(order.timestamp).toLocaleTimeString()} • {order.status}
-                          </p>
-                          <p className="font-medium text-2xl">{order.recipe}</p>
+                          <p className={`text-xs font-bold uppercase tracking-widest mb-3 ${i === 0 ? 'text-white/60' : 'text-black/50'}`}>Packed Stack:</p>
+                          <ul className="space-y-2">
+                            {order.items.map((item, idx) => (
+                              <li key={idx} className="flex items-center gap-3 font-medium text-sm">
+                                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${i===0 ? 'bg-white/20' : 'bg-black/10'}`}>{item.qty}</span>
+                                {item.substituted ? (
+                                  <span className="text-red-500 flex flex-col">
+                                    <span className="line-through opacity-70">{item.name}</span>
+                                    <span className="font-bold text-xs uppercase tracking-widest mt-0.5">↳ Sub: {item.subName}</span>
+                                  </span>
+                                ) : (
+                                  item.name
+                                )}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
-                        <span className={`text-xl font-medium block ${i === 0 ? 'text-[#D4E5F2]' : ''}`}>
-                          ${order.price.toFixed(2)}
-                        </span>
+                        
+                        {hasSub && (
+                          <div className={`mt-4 p-3 rounded-xl ${i === 0 ? 'bg-white/10 text-white' : 'bg-red-50 text-red-600'}`}>
+                            <p className="text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 bg-current rounded-full"></span>
+                              Smart Substitution Auto-Applied
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      
-                      {order.substituted && (
-                        <div className={`mt-3 p-3 rounded-xl ${i === 0 ? 'bg-white/10 text-white' : 'bg-red-50 text-red-600'}`}>
-                          <p className="text-xs font-bold uppercase tracking-widest mb-1">Smart Substitution</p>
-                          <p className="font-medium">{order.subText}</p>
-                        </div>
-                      )}
-                    </div>
-                  ))
+                    )
+                  })
                 )}
               </div>
             </div>

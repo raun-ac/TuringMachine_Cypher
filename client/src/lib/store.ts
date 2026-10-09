@@ -1,15 +1,23 @@
 "use client";
 import { useState, useEffect, useCallback } from 'react';
 
-const STORE_KEY = 'antigravity_hackathon_state_v2';
+const STORE_KEY = 'antigravity_hackathon_state_v3';
+
+export type OrderItem = {
+  ingredientId: string;
+  name: string;
+  qty: number;
+  substituted: boolean;
+  subName?: string;
+};
 
 export type Order = {
   id: string;
   recipe: string;
+  portions: number;
   price: number;
   status: 'pending' | 'assigned' | 'picking' | 'delivering' | 'completed';
-  substituted: boolean;
-  subText?: string;
+  items: OrderItem[];
   timestamp: number;
 };
 
@@ -27,17 +35,17 @@ export type AppState = {
 
 export const defaultState: AppState = {
   inventory: {
-    heavy_cream: { name: 'Heavy Cream', stock: 1, sub: 'Greek Yogurt' },
-    avocado: { name: 'Fresh Avocado', stock: 5, sub: 'Edamame' },
     chicken: { name: 'Chicken Breast', stock: 12 },
+    heavy_cream: { name: 'Heavy Cream', stock: 1, sub: 'Greek Yogurt' },
     tomatoes: { name: 'Roma Tomatoes', stock: 8, sub: 'Canned Tomatoes' },
+    avocado: { name: 'Fresh Avocado', stock: 5, sub: 'Edamame' },
+    quinoa: { name: 'Organic Quinoa', stock: 20 },
     basil: { name: 'Fresh Basil', stock: 0, sub: 'Dried Oregano' },
-    mango: { name: 'Alphonso Mango', stock: 2, sub: 'Frozen Peaches' }
+    pizza_dough: { name: 'Sourdough Base', stock: 10 },
+    mango: { name: 'Alphonso Mango', stock: 2, sub: 'Frozen Peaches' },
+    milk: { name: 'Oat Milk', stock: 15 },
   },
-  orders: [
-    { id: 'ORD-091', recipe: 'Spaghetti Bolognese', price: 18.50, status: 'completed', substituted: false, timestamp: Date.now() - 3600000 },
-    { id: 'ORD-092', recipe: 'Avocado Bowl', price: 16.00, status: 'completed', substituted: false, timestamp: Date.now() - 1800000 },
-  ],
+  orders: [],
   riderOnline: true,
 };
 

@@ -1,46 +1,105 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { useAppStore } from '@/lib/store';
+import { useAppStore, OrderItem } from '@/lib/store';
 
 const RECIPES = [
-  { id: 'butter-chicken', name: 'Butter Chicken', price: 24.50, items: 12, time: 45, requires: 'heavy_cream', emoji: '🍛' },
-  { id: 'avocado-bowl', name: 'Avocado Bowl', price: 18.00, items: 8, time: 15, requires: 'avocado', emoji: '🥗' },
-  { id: 'margherita', name: 'Margherita Pizza', price: 21.00, items: 5, time: 25, requires: 'basil', emoji: '🍕' },
-  { id: 'mango-smoothie', name: 'Mango Smoothie', price: 9.50, items: 4, time: 5, requires: 'mango', emoji: '🥭' },
+  { 
+    id: 'butter-chicken', 
+    name: 'Butter Chicken', 
+    basePrice: 12.25, 
+    time: 45, 
+    emoji: '🍛',
+    ingredients: [
+      { id: 'chicken', qty: 1 },
+      { id: 'heavy_cream', qty: 1 },
+      { id: 'tomatoes', qty: 2 }
+    ]
+  },
+  { 
+    id: 'avocado-bowl', 
+    name: 'Avocado Bowl', 
+    basePrice: 9.00, 
+    time: 15, 
+    emoji: '🥗',
+    ingredients: [
+      { id: 'avocado', qty: 1 },
+      { id: 'quinoa', qty: 1 },
+      { id: 'tomatoes', qty: 1 }
+    ]
+  },
+  { 
+    id: 'margherita', 
+    name: 'Margherita Pizza', 
+    basePrice: 10.50, 
+    time: 25, 
+    emoji: '🍕',
+    ingredients: [
+      { id: 'pizza_dough', qty: 1 },
+      { id: 'tomatoes', qty: 2 },
+      { id: 'basil', qty: 1 }
+    ]
+  },
+  { 
+    id: 'mango-smoothie', 
+    name: 'Mango Smoothie', 
+    basePrice: 4.75, 
+    time: 5, 
+    emoji: '🥭',
+    ingredients: [
+      { id: 'mango', qty: 1 },
+      { id: 'milk', qty: 1 }
+    ]
+  },
 ];
 
 export default function CustomerApp() {
   const { state, updateState } = useAppStore();
   const [justOrdered, setJustOrdered] = useState<string | null>(null);
+  const [portions, setPortions] = useState(2);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
   const handleOrder = (recipe: typeof RECIPES[0]) => {
-    const requiredItem = state.inventory[recipe.requires];
-    const isOutOfStock = requiredItem.stock <= 0;
     
+    const orderItems: OrderItem[] = [];
+    const newInventory = { ...state.inventory };
+    let hasSub = false;
+
+    for (const req of recipe.ingredients) {
+      const invItem = newInventory[req.id];
+      const neededQty = req.qty * portions;
+      const isOutOfStock = invItem.stock < neededQty;
+
+      orderItems.push({
+        ingredientId: req.id,
+        name: invItem.name,
+        qty: neededQty,
+        substituted: isOutOfStock,
+        subName: isOutOfStock ? invItem.sub : undefined
+      });
+
+      if (isOutOfStock) hasSub = true;
+      else {
+        newInventory[req.id] = { ...invItem, stock: invItem.stock - neededQty };
+      }
+    }
+
     const newOrder = {
       id: `ORD-${Math.floor(Math.random() * 1000) + 1000}`,
       recipe: recipe.name,
-      price: recipe.price,
+      portions,
+      price: recipe.basePrice * portions,
       status: 'pending' as const,
-      substituted: isOutOfStock,
-      subText: isOutOfStock ? `${requiredItem.sub} (for ${requiredItem.name})` : undefined,
+      items: orderItems,
       timestamp: Date.now(),
     };
 
-    updateState(prev => {
-      const newInventory = { ...prev.inventory };
-      if (newInventory[recipe.requires].stock > 0) {
-        newInventory[recipe.requires].stock -= 1;
-      }
-      return {
-        ...prev,
-        inventory: newInventory,
-        orders: [newOrder, ...prev.orders]
-      };
-    });
+    updateState(prev => ({
+      ...prev,
+      inventory: newInventory,
+      orders: [newOrder, ...prev.orders]
+    }));
 
     setJustOrdered(recipe.id);
     setTimeout(() => setJustOrdered(null), 4000);
@@ -54,8 +113,19 @@ export default function CustomerApp() {
         <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center font-bold tracking-tighter text-xl">
           JD
         </div>
-        <div className="bg-black/5 px-4 py-2 rounded-full font-medium text-sm">
-          {state.orders.length} Past Orders
+        <div className="bg-black/5 px-4 py-2 rounded-full font-medium text-sm flex items-center gap-4">
+          <span>Portions:</span>
+          <div className="flex gap-2">
+            {[1, 2, 4].map(p => (
+              <button 
+                key={p} 
+                onClick={() => setPortions(p)}
+                className={`w-8 h-8 rounded-full font-bold ${portions === p ? 'bg-black text-white' : 'bg-black/10'}`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
         </div>
       </nav>
 
@@ -66,9 +136,10 @@ export default function CustomerApp() {
         
         <div className="space-y-2">
           {RECIPES.map((recipe, index) => {
-            const requiredItem = state.inventory[recipe.requires];
-            const isSubNeeded = requiredItem.stock <= 0;
             const isJustOrdered = justOrdered === recipe.id;
+            
+            // Preview check for subs
+            const willHaveSub = recipe.ingredients.some(req => state.inventory[req.id].stock < req.qty * portions);
 
             return (
               <div 
@@ -84,24 +155,19 @@ export default function CustomerApp() {
                         <h3 className={`text-3xl font-medium tracking-tight mb-1 ${isJustOrdered ? 'text-white' : 'text-black'}`}>{recipe.name}</h3>
                         <p className={`text-sm font-medium flex items-center gap-2 ${isJustOrdered ? 'text-white/60' : 'text-black/50'}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${isJustOrdered ? 'bg-white' : 'bg-black'} block`}></span>
-                          {recipe.items} items • {recipe.time} mins
+                          {recipe.ingredients.length} items • {recipe.time} mins
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className={`text-2xl font-medium block ${isJustOrdered ? 'text-white' : 'text-black'}`}>${recipe.price.toFixed(2)}</span>
+                      <span className={`text-2xl font-medium block ${isJustOrdered ? 'text-white' : 'text-black'}`}>${(recipe.basePrice * portions).toFixed(2)}</span>
                     </div>
                   </div>
 
                   {isJustOrdered ? (
                     <div className="bg-white/10 p-4 rounded-2xl text-center">
                        <p className="text-lg font-bold mb-1">🎉 Order Placed!</p>
-                       {isSubNeeded && (
-                         <p className="text-[#D1F2D9] font-medium text-sm mt-2 flex flex-col">
-                           <span className="uppercase text-xs font-bold opacity-70 tracking-widest mb-1">Smart Sub Activated</span>
-                           {requiredItem.sub} replaced {requiredItem.name}
-                         </p>
-                       )}
+                       <p className="text-white/60 text-sm">Ingredient stack sent to rider.</p>
                     </div>
                   ) : (
                     <div className="relative overflow-hidden rounded-full">
@@ -114,10 +180,10 @@ export default function CustomerApp() {
                     </div>
                   )}
                   
-                  {!isJustOrdered && isSubNeeded && (
-                     <div className="mt-3 flex items-center gap-2 justify-center text-xs font-bold text-red-600 uppercase tracking-widest bg-red-600/10 py-1 px-3 rounded-full w-max mx-auto">
+                  {!isJustOrdered && willHaveSub && (
+                     <div className="mt-3 flex items-center gap-2 justify-center text-[10px] font-bold text-red-600 uppercase tracking-widest bg-red-600/10 py-1.5 px-3 rounded-full w-max mx-auto">
                        <span className="w-1.5 h-1.5 bg-red-600 rounded-full animate-pulse"></span>
-                       Low stock on {requiredItem.name}
+                       Smart Sub Available for out of stock items
                      </div>
                   )}
                 </div>

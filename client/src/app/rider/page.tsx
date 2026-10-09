@@ -40,7 +40,6 @@ export default function RiderApp() {
           {activeOrder ? 'Active\nDelivery' : (pendingOrder ? 'New Delivery\nRequest' : 'Looking for\nOrders...')}
         </h1>
         
-        {/* Progress bar mimicking the image exactly */}
         <div className="mb-12 animate-reveal delay-200">
           <div className="flex h-8 bg-black/10 rounded-lg overflow-hidden w-full mb-3">
             <div className={`transition-all duration-1000 ease-out bg-black ${activeOrder ? 'w-4/5' : (pendingOrder ? 'w-1/2' : 'w-0')}`}></div>
@@ -55,7 +54,7 @@ export default function RiderApp() {
 
         {currentOrder ? (
           <div className="animate-reveal delay-300">
-            <div className="space-y-0 mb-16 bg-white/40 p-6 rounded-3xl shadow-xl">
+            <div className="mb-8 bg-white/40 p-6 rounded-3xl shadow-xl">
               <div className="pb-6 border-b border-black/10 flex justify-between items-start">
                  <div>
                    <p className="text-7xl font-medium tracking-tight mb-2">${currentOrder.price.toFixed(2)}</p>
@@ -67,11 +66,33 @@ export default function RiderApp() {
                  <p className="font-medium text-black/50">+1.2mi</p>
               </div>
               
+              <div className="py-6 border-b border-black/10">
+                 <h4 className="font-bold uppercase tracking-widest text-xs mb-4 text-black/50">Ingredient Picklist (Stack)</h4>
+                 <ul className="space-y-3">
+                   {currentOrder.items.map((item, idx) => (
+                     <li key={idx} className="flex items-center justify-between font-medium">
+                       <span className="flex items-center gap-3">
+                         <span className="w-6 h-6 rounded-full bg-black/10 flex items-center justify-center text-xs">{item.qty}</span>
+                         {item.substituted ? (
+                           <span className="text-red-600 line-through opacity-50">{item.name}</span>
+                         ) : item.name}
+                       </span>
+                       
+                       {item.substituted && (
+                         <span className="text-red-600 text-sm font-bold uppercase tracking-widest flex items-center gap-1">
+                           <span className="w-1 h-1 rounded-full bg-red-600"></span>
+                           Sub: {item.subName}
+                         </span>
+                       )}
+                     </li>
+                   ))}
+                 </ul>
+              </div>
+
               <div className="pt-6 flex justify-between items-start">
                  <div>
-                   <p className="text-7xl font-medium tracking-tight mb-2">8<span className="text-4xl">min</span></p>
-                   <p className="text-sm font-medium flex items-center gap-2">
-                     <span className={`w-2 h-2 block ${activeOrder ? 'bg-green-500 animate-pulse' : 'bg-black'}`}></span>
+                   <p className="text-5xl font-medium tracking-tight mb-1">8<span className="text-2xl">min</span></p>
+                   <p className="text-xs font-medium flex items-center gap-2 uppercase tracking-widest text-black/50">
                      Est. Arrival
                    </p>
                  </div>
