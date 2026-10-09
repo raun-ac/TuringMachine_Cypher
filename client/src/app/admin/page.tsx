@@ -120,7 +120,7 @@ export default function AdminDashboard() {
                             <p className="font-medium text-2xl">{order.recipe} (x{order.portions})</p>
                           </div>
                           <span className={`text-xl font-medium block ${i === 0 ? 'text-[#D4E5F2]' : ''}`}>
-                            ${order.price.toFixed(2)}
+                            ₹{order.price}
                           </span>
                         </div>
                         

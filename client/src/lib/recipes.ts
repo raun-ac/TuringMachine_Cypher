@@ -1,0 +1,61 @@
+export const RECIPES = [
+  // INDIAN (10)
+  { id: 'ind-1', category: 'Indian', name: 'Butter Chicken', basePrice: 380, time: 45, emoji: '🍛', ingredients: [ { id: 'chicken', qty: 1 }, { id: 'heavy_cream', qty: 1 }, { id: 'tomatoes', qty: 2 } ] },
+  { id: 'ind-2', category: 'Indian', name: 'Palak Paneer', basePrice: 320, time: 30, emoji: '🥘', ingredients: [ { id: 'paneer', qty: 1 }, { id: 'spinach', qty: 2 }, { id: 'heavy_cream', qty: 1 } ] },
+  { id: 'ind-3', category: 'Indian', name: 'Chana Masala', basePrice: 240, time: 25, emoji: '🍛', ingredients: [ { id: 'lentils', qty: 1 }, { id: 'tomatoes', qty: 2 }, { id: 'garlic', qty: 1 } ] },
+  { id: 'ind-4', category: 'Indian', name: 'Lamb Rogan Josh', basePrice: 550, time: 55, emoji: '🍲', ingredients: [ { id: 'lamb', qty: 1 }, { id: 'tomatoes', qty: 2 }, { id: 'garlic', qty: 1 } ] },
+  { id: 'ind-5', category: 'Indian', name: 'Paneer Tikka', basePrice: 280, time: 20, emoji: '🍢', ingredients: [ { id: 'paneer', qty: 1 }, { id: 'tomatoes', qty: 1 } ] },
+  { id: 'ind-6', category: 'Indian', name: 'Chicken Biryani', basePrice: 350, time: 60, emoji: '🍚', ingredients: [ { id: 'chicken', qty: 1 }, { id: 'rice', qty: 2 } ] },
+  { id: 'ind-7', category: 'Indian', name: 'Dal Tadka', basePrice: 220, time: 25, emoji: '🥣', ingredients: [ { id: 'lentils', qty: 1 }, { id: 'garlic', qty: 2 }, { id: 'tomatoes', qty: 1 } ] },
+  { id: 'ind-8', category: 'Indian', name: 'Aloo Gobi', basePrice: 240, time: 35, emoji: '🥘', ingredients: [ { id: 'potatoes', qty: 2 }, { id: 'broccoli', qty: 1 } ] },
+  { id: 'ind-9', category: 'Indian', name: 'Garlic Naan', basePrice: 80, time: 15, emoji: '🫓', ingredients: [ { id: 'pizza_dough', qty: 1 }, { id: 'garlic', qty: 2 } ] },
+  { id: 'ind-10', category: 'Indian', name: 'Samosa', basePrice: 120, time: 30, emoji: '🥟', ingredients: [ { id: 'potatoes', qty: 1 }, { id: 'pizza_dough', qty: 1 } ] },
+
+  // CHINESE (10)
+  { id: 'chn-1', category: 'Chinese', name: 'Spicy Tofu Stir Fry', basePrice: 350, time: 20, emoji: '🍱', ingredients: [ { id: 'tofu', qty: 1 }, { id: 'rice', qty: 1 }, { id: 'soy_sauce', qty: 1 } ] },
+  { id: 'chn-2', category: 'Chinese', name: 'Chicken Chow Mein', basePrice: 320, time: 25, emoji: '🍜', ingredients: [ { id: 'chicken', qty: 1 }, { id: 'noodles', qty: 1 }, { id: 'soy_sauce', qty: 1 } ] },
+  { id: 'chn-3', category: 'Chinese', name: 'Beef & Broccoli', basePrice: 450, time: 20, emoji: '🥩', ingredients: [ { id: 'beef_patty', qty: 1 }, { id: 'broccoli', qty: 1 }, { id: 'soy_sauce', qty: 1 } ] },
+  { id: 'chn-4', category: 'Chinese', name: 'Egg Fried Rice', basePrice: 280, time: 15, emoji: '🍚', ingredients: [ { id: 'rice', qty: 2 }, { id: 'eggs', qty: 2 }, { id: 'soy_sauce', qty: 1 } ] },
+  { id: 'chn-5', category: 'Chinese', name: 'Spring Rolls', basePrice: 220, time: 30, emoji: '🌯', ingredients: [ { id: 'noodles', qty: 1 }, { id: 'lettuce', qty: 1 } ] },
+  { id: 'chn-6', category: 'Chinese', name: 'Kung Pao Chicken', basePrice: 380, time: 25, emoji: '🥘', ingredients: [ { id: 'chicken', qty: 1 }, { id: 'soy_sauce', qty: 2 } ] },
+  { id: 'chn-7', category: 'Chinese', name: 'Egg Drop Soup', basePrice: 180, time: 10, emoji: '🥣', ingredients: [ { id: 'eggs', qty: 2 }, { id: 'noodles', qty: 1 } ] },
+  { id: 'chn-8', category: 'Chinese', name: 'Mapo Tofu', basePrice: 340, time: 20, emoji: '🍲', ingredients: [ { id: 'tofu', qty: 2 }, { id: 'lamb', qty: 1 }, { id: 'soy_sauce', qty: 1 } ] },
+  { id: 'chn-9', category: 'Chinese', name: 'Garlic Bok Choy', basePrice: 280, time: 10, emoji: '🥬', ingredients: [ { id: 'garlic', qty: 3 }, { id: 'spinach', qty: 1 } ] },
+  { id: 'chn-10', category: 'Chinese', name: 'Sweet & Sour Chicken', basePrice: 380, time: 30, emoji: '🍗', ingredients: [ { id: 'chicken', qty: 1 }, { id: 'mango', qty: 1 } ] },
+
+  // ITALIAN (10)
+  { id: 'ita-1', category: 'Italian', name: 'Truffle Mushroom Pasta', basePrice: 550, time: 20, emoji: '🍝', ingredients: [ { id: 'pasta', qty: 1 }, { id: 'mushrooms', qty: 2 }, { id: 'heavy_cream', qty: 1 } ] },
+  { id: 'ita-2', category: 'Italian', name: 'Margherita Pizza', basePrice: 450, time: 25, emoji: '🍕', ingredients: [ { id: 'pizza_dough', qty: 1 }, { id: 'tomatoes', qty: 2 }, { id: 'basil', qty: 1 } ] },
+  { id: 'ita-3', category: 'Italian', name: 'Spaghetti Bolognese', basePrice: 480, time: 40, emoji: '🍝', ingredients: [ { id: 'pasta', qty: 1 }, { id: 'tomatoes', qty: 2 }, { id: 'beef_patty', qty: 1 } ] },
+  { id: 'ita-4', category: 'Italian', name: 'Fettuccine Alfredo', basePrice: 420, time: 20, emoji: '🧀', ingredients: [ { id: 'pasta', qty: 1 }, { id: 'heavy_cream', qty: 1 }, { id: 'cheese', qty: 1 } ] },
+  { id: 'ita-5', category: 'Italian', name: 'Chicken Parmesan', basePrice: 520, time: 35, emoji: '🍗', ingredients: [ { id: 'chicken', qty: 1 }, { id: 'tomatoes', qty: 1 }, { id: 'cheese', qty: 1 } ] },
+  { id: 'ita-6', category: 'Italian', name: 'Mushroom Risotto', basePrice: 480, time: 45, emoji: '🍚', ingredients: [ { id: 'rice', qty: 1 }, { id: 'mushrooms', qty: 2 }, { id: 'heavy_cream', qty: 1 } ] },
+  { id: 'ita-7', category: 'Italian', name: 'Garlic Bread', basePrice: 180, time: 10, emoji: '🥖', ingredients: [ { id: 'buns', qty: 1 }, { id: 'garlic', qty: 2 } ] },
+  { id: 'ita-8', category: 'Italian', name: 'Caprese Salad', basePrice: 320, time: 5, emoji: '🥗', ingredients: [ { id: 'tomatoes', qty: 1 }, { id: 'basil', qty: 1 }, { id: 'cheese', qty: 1 } ] },
+  { id: 'ita-9', category: 'Italian', name: 'Spinach Ravioli', basePrice: 450, time: 25, emoji: '🥟', ingredients: [ { id: 'pasta', qty: 1 }, { id: 'spinach', qty: 1 }, { id: 'cheese', qty: 1 } ] },
+  { id: 'ita-10', category: 'Italian', name: 'Pesto Pasta', basePrice: 380, time: 15, emoji: '🍝', ingredients: [ { id: 'pasta', qty: 1 }, { id: 'basil', qty: 2 }, { id: 'garlic', qty: 1 } ] },
+
+  // AMERICAN (10)
+  { id: 'ame-1', category: 'American', name: 'Wagyu Cheeseburger', basePrice: 650, time: 15, emoji: '🍔', ingredients: [ { id: 'beef_patty', qty: 1 }, { id: 'buns', qty: 1 }, { id: 'cheese', qty: 1 }, { id: 'lettuce', qty: 1 } ] },
+  { id: 'ame-2', category: 'American', name: 'Crispy Chicken Sandwich', basePrice: 380, time: 20, emoji: '🥪', ingredients: [ { id: 'chicken', qty: 1 }, { id: 'buns', qty: 1 }, { id: 'lettuce', qty: 1 } ] },
+  { id: 'ame-3', category: 'American', name: 'Mac and Cheese', basePrice: 350, time: 25, emoji: '🧀', ingredients: [ { id: 'pasta', qty: 1 }, { id: 'cheese', qty: 2 }, { id: 'milk', qty: 1 } ] },
+  { id: 'ame-4', category: 'American', name: 'Steak & Potatoes', basePrice: 850, time: 30, emoji: '🥩', ingredients: [ { id: 'lamb', qty: 1 }, { id: 'potatoes', qty: 2 } ] },
+  { id: 'ame-5', category: 'American', name: 'Classic Cobb Salad', basePrice: 420, time: 15, emoji: '🥗', ingredients: [ { id: 'lettuce', qty: 1 }, { id: 'chicken', qty: 1 }, { id: 'eggs', qty: 1 }, { id: 'avocado', qty: 1 } ] },
+  { id: 'ame-6', category: 'American', name: 'BLT Sandwich', basePrice: 280, time: 10, emoji: '🥪', ingredients: [ { id: 'buns', qty: 1 }, { id: 'lettuce', qty: 1 }, { id: 'tomatoes', qty: 1 } ] },
+  { id: 'ame-7', category: 'American', name: 'Grilled Cheese', basePrice: 250, time: 10, emoji: '🥪', ingredients: [ { id: 'buns', qty: 1 }, { id: 'cheese', qty: 2 } ] },
+  { id: 'ame-8', category: 'American', name: 'Mashed Potatoes', basePrice: 180, time: 20, emoji: '🥔', ingredients: [ { id: 'potatoes', qty: 2 }, { id: 'milk', qty: 1 }, { id: 'heavy_cream', qty: 1 } ] },
+  { id: 'ame-9', category: 'American', name: 'Salmon Burger', basePrice: 580, time: 15, emoji: '🍔', ingredients: [ { id: 'salmon', qty: 1 }, { id: 'buns', qty: 1 }, { id: 'lettuce', qty: 1 } ] },
+  { id: 'ame-10', category: 'American', name: 'Avocado Toast', basePrice: 320, time: 5, emoji: '🥑', ingredients: [ { id: 'avocado', qty: 1 }, { id: 'buns', qty: 1 } ] },
+
+  // HEALTHY (10)
+  { id: 'hea-1', category: 'Healthy', name: 'Açaí Breakfast Bowl', basePrice: 450, time: 5, emoji: '🫐', ingredients: [ { id: 'acai', qty: 1 }, { id: 'granola', qty: 1 } ] },
+  { id: 'hea-2', category: 'Healthy', name: 'Avocado Quinoa Bowl', basePrice: 380, time: 15, emoji: '🥗', ingredients: [ { id: 'avocado', qty: 1 }, { id: 'quinoa', qty: 1 }, { id: 'tomatoes', qty: 1 } ] },
+  { id: 'hea-3', category: 'Healthy', name: 'Grilled Salmon Salad', basePrice: 650, time: 20, emoji: '🐟', ingredients: [ { id: 'salmon', qty: 1 }, { id: 'lettuce', qty: 1 }, { id: 'tomatoes', qty: 1 } ] },
+  { id: 'hea-4', category: 'Healthy', name: 'Quinoa Stuffed Peppers', basePrice: 350, time: 35, emoji: '🫑', ingredients: [ { id: 'quinoa', qty: 1 }, { id: 'tomatoes', qty: 2 } ] },
+  { id: 'hea-5', category: 'Healthy', name: 'Mango Spinach Smoothie', basePrice: 220, time: 5, emoji: '🥤', ingredients: [ { id: 'mango', qty: 1 }, { id: 'spinach', qty: 1 }, { id: 'milk', qty: 1 } ] },
+  { id: 'hea-6', category: 'Healthy', name: 'Tofu Broccoli Bowl', basePrice: 380, time: 20, emoji: '🥦', ingredients: [ { id: 'tofu', qty: 1 }, { id: 'broccoli', qty: 1 }, { id: 'quinoa', qty: 1 } ] },
+  { id: 'hea-7', category: 'Healthy', name: 'Green Goddess Salad', basePrice: 350, time: 10, emoji: '🥬', ingredients: [ { id: 'lettuce', qty: 1 }, { id: 'avocado', qty: 1 }, { id: 'spinach', qty: 1 } ] },
+  { id: 'hea-8', category: 'Healthy', name: 'Mushroom Lentil Soup', basePrice: 280, time: 30, emoji: '🥣', ingredients: [ { id: 'mushrooms', qty: 1 }, { id: 'lentils', qty: 1 }, { id: 'garlic', qty: 1 } ] },
+  { id: 'hea-9', category: 'Healthy', name: 'Boiled Egg & Avocado', basePrice: 250, time: 10, emoji: '🥚', ingredients: [ { id: 'eggs', qty: 1 }, { id: 'avocado', qty: 1 } ] },
+  { id: 'hea-10', category: 'Healthy', name: 'Tropical Mango Bowl', basePrice: 350, time: 5, emoji: '🥭', ingredients: [ { id: 'mango', qty: 1 }, { id: 'granola', qty: 1 }, { id: 'milk', qty: 1 } ] },
+];

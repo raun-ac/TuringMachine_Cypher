@@ -57,7 +57,7 @@ export default function RiderApp() {
             <div className="mb-8 bg-white/40 p-6 rounded-3xl shadow-xl">
               <div className="pb-6 border-b border-black/10 flex justify-between items-start">
                  <div>
-                   <p className="text-7xl font-medium tracking-tight mb-2">${currentOrder.price.toFixed(2)}</p>
+                   <p className="text-7xl font-medium tracking-tight mb-2">₹{currentOrder.price}</p>
                    <p className="text-sm font-medium flex items-center gap-2">
                      <span className="w-2 h-2 border border-black block"></span>
                      Store #04 • {currentOrder.id}
