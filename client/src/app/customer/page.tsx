@@ -33,8 +33,36 @@ export default function CustomerApp() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
+  const [isTracking, setIsTracking] = useState(false);
+  const [mapCenter, setMapCenter] = useState('New York');
+  const [eta, setEta] = useState(12);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const TOTAL_TRACKING_SECONDS = 60; // 60 seconds for the simulation
+  const INITIAL_ETA = 12;
 
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (isTracking) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => setMapCenter(`${pos.coords.latitude},${pos.coords.longitude}`),
+          () => console.log("Geolocation denied")
+        );
+      }
+      
+      // Sync ETA reduction perfectly with the 60s route animation
+      // 12 mins -> 0 mins over 60 seconds = 1 min reduction every 5 seconds
+      const interval = setInterval(() => {
+        setEta(prev => Math.max(0, prev - 1));
+      }, (TOTAL_TRACKING_SECONDS / INITIAL_ETA) * 1000); 
+      
+      return () => clearInterval(interval);
+    } else {
+      setEta(INITIAL_ETA);
+      setMapCenter('New York');
+    }
+  }, [isTracking]);
 
   const getServings = (id: string) => servingsMap[id] || 1;
   const setServings = (id: string, val: number) => setServingsMap(prev => ({ ...prev, [id]: val }));
@@ -505,9 +533,153 @@ export default function CustomerApp() {
              </div>
              <h3 className="text-2xl font-black uppercase tracking-tighter text-black mb-2">Order Placed!</h3>
              <p className="text-gray-500 font-medium mb-6">Your order was successfully placed and will be delivered to you shortly.</p>
-             <button onClick={() => setCheckoutSuccess(false)} className="w-full bg-black text-white font-bold uppercase tracking-widest text-sm py-4 rounded-xl hover:bg-black/80 transition-colors active:scale-95">
+             <button onClick={() => { setCheckoutSuccess(false); setIsTracking(true); }} className="w-full bg-black text-white font-bold uppercase tracking-widest text-sm py-4 rounded-xl hover:bg-black/80 transition-colors active:scale-95">
                Track Order
              </button>
+          </div>
+        </div>
+      )}
+
+      {/* LIVE TRACKING OVERLAY */}
+      {isTracking && (
+        <div className="fixed inset-0 z-[300] bg-white animate-[reveal_0.4s_ease-out] flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="bg-white px-6 py-4 border-b border-gray-100 flex items-center justify-between z-20 shadow-sm relative">
+            <div>
+              <h2 className="text-xl font-black italic tracking-tight">Live Tracking</h2>
+              <p className="text-gray-500 text-sm font-medium">Order #ORD-2839</p>
+            </div>
+            <button onClick={() => setIsTracking(false)} className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-500 hover:bg-gray-200 transition-colors">
+              ✕
+            </button>
+          </div>
+
+          <div className="flex-1 relative w-full h-full bg-[#E5E3DF] overflow-hidden">
+            
+            {/* Custom Zoom Controls */}
+            <div className="absolute inset-0 z-50 pointer-events-none flex flex-col gap-3 items-end justify-start p-6 top-[15%] right-0 md:right-4">
+              <button 
+                onClick={() => setZoomLevel(prev => Math.min(prev + 0.3, 3))} 
+                className="w-12 h-12 bg-white rounded-2xl shadow-xl border border-gray-100 flex items-center justify-center pointer-events-auto text-black text-2xl font-black hover:bg-gray-50 active:scale-95 transition-all"
+              >
+                +
+              </button>
+              <button 
+                onClick={() => setZoomLevel(prev => Math.max(prev - 0.3, 0.5))} 
+                className="w-12 h-12 bg-white rounded-2xl shadow-xl border border-gray-100 flex items-center justify-center pointer-events-auto text-black text-3xl font-black hover:bg-gray-50 active:scale-95 transition-all leading-none pb-1"
+              >
+                -
+              </button>
+            </div>
+
+            <div 
+              className="w-full h-full origin-center transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+              style={{ transform: `scale(${zoomLevel})` }}
+            >
+              {/* Embedded Google Map */}
+              <iframe 
+                  src={`https://maps.google.com/maps?q=${mapCenter}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
+                  className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.85] mix-blend-luminosity grayscale-[30%]"
+                  style={{ border: 0 }} 
+                  allowFullScreen 
+                  loading="lazy" 
+                  referrerPolicy="no-referrer-when-downgrade"
+              ></iframe>
+              
+              {/* Simulated Live Tracking Path (SVG) with STRICT Rider Motion */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 100 1150 800" preserveAspectRatio="xMidYMid meet">
+                <path 
+                  id="deliveryRoute"
+                  d="M 150,750 L 150,550 L 350,550 L 350,350 L 550,350 L 550,250 L 850,250 L 850,450 L 1000,450" 
+                  fill="none" 
+                  stroke="#2B64E3" 
+                  strokeWidth="8" 
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="opacity-90 drop-shadow-md"
+                />
+                
+                {/* Pickup Pin */}
+                <g transform="translate(150, 750)">
+                  <circle cx="0" cy="0" r="6" fill="black" />
+                  <foreignObject x="-40" y="-35" width="80" height="26">
+                    <div className="bg-white px-2.5 py-1 rounded-md text-[10px] font-bold shadow-sm border border-gray-200 flex items-center justify-center gap-1.5 w-max mx-auto">
+                      <svg className="w-2.5 h-2.5 text-black" fill="currentColor" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg> Pickup
+                    </div>
+                  </foreignObject>
+                </g>
+
+                {/* Dropoff Pin */}
+                <g transform="translate(1000, 450)">
+                  <circle cx="0" cy="0" r="7" fill="black" />
+                  <circle cx="0" cy="0" r="20" fill="#2B64E3" className="opacity-20 animate-ping" />
+                  <foreignObject x="-40" y="-35" width="80" height="26">
+                    <div className="bg-white px-2.5 py-1 rounded-md text-[10px] font-bold shadow-sm border border-gray-200 flex items-center justify-center gap-1.5 w-max mx-auto">
+                       <svg className="w-2.5 h-2.5 text-black" fill="currentColor" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg> Dropoff
+                    </div>
+                  </foreignObject>
+                </g>
+
+                {/* Top-down vehicle perfectly following and rotating along the path */}
+                <g>
+                  <foreignObject x="-24" y="-12" width="48" height="24">
+                    <div className="w-full h-full bg-[#1A1A1A] rounded-md shadow-2xl border border-gray-700 relative">
+                       {/* Windshield */}
+                       <div className="absolute right-3 top-1 bottom-1 w-2 bg-gray-900 rounded-sm"></div>
+                       <div className="absolute left-2 top-1 bottom-1 w-1.5 bg-gray-900 rounded-sm"></div>
+                       {/* Headlights (right side is the front) */}
+                       <div className="absolute right-0 top-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                       <div className="absolute right-0 bottom-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                       {/* Taillights */}
+                       <div className="absolute left-0 top-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
+                       <div className="absolute left-0 bottom-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
+                    </div>
+                  </foreignObject>
+                  <animateMotion dur="60s" repeatCount="1" fill="freeze" rotate="auto">
+                    <mpath href="#deliveryRoute" />
+                  </animateMotion>
+                </g>
+              </svg>
+            </div>
+
+            {/* Floating ETA Timeline Card */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 z-30">
+              <div className="bg-white rounded-[2rem] p-6 shadow-2xl border border-gray-100 flex flex-col gap-5">
+                <div>
+                  <h3 className="text-xl font-bold text-black tracking-tight mb-1">Your order is {eta} min away</h3>
+                  <p className="text-sm font-medium text-gray-500 flex items-center gap-2">License Plate: <span className="bg-gray-100 px-2 py-0.5 rounded font-mono font-bold text-gray-700">MH 12 AB 1234</span></p>
+                </div>
+
+                <div className="bg-gray-50 rounded-[1.5rem] p-5 border border-gray-100 flex flex-col gap-6 relative">
+                   {/* Vertical Line */}
+                   <div className="absolute left-[31px] top-8 bottom-8 w-[2px] bg-gray-200 rounded-full"></div>
+
+                   <div className="flex items-center gap-4 relative z-10">
+                     <div className="w-5 h-5 rounded-full border-[5px] border-black bg-white flex-shrink-0 shadow-sm z-10"></div>
+                     <div className="flex-1 flex justify-between items-center">
+                        <div>
+                          <p className="text-[15px] font-bold text-black">Pickup</p>
+                          <p className="text-xs font-medium text-gray-500">Vehicle departed</p>
+                        </div>
+                        <p className="text-xs font-bold text-gray-800">8:27 pm</p>
+                     </div>
+                   </div>
+
+                   <div className="flex items-center gap-4 relative z-10">
+                     <div className="w-5 h-5 rounded-full bg-black flex-shrink-0 flex items-center justify-center shadow-md z-10">
+                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                     </div>
+                     <div className="flex-1 flex justify-between items-center">
+                        <div>
+                          <p className="text-[15px] font-bold text-black">Home</p>
+                          <p className="text-xs font-bold text-yellow-600">Arriving in {eta} min</p>
+                        </div>
+                        <p className="text-xs font-bold text-gray-800">8:39 pm</p>
+                     </div>
+                   </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

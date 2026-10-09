@@ -80,3 +80,22 @@ body {
   display: flex;
   width: max-content;
 }
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -1000;
+  }
+}
+
+@keyframes ridePath {
+  0% { top: 20%; left: 10%; transform: rotate(15deg); }
+  25% { top: 40%; left: 30%; transform: rotate(45deg); }
+  50% { top: 60%; left: 50%; transform: rotate(-10deg); }
+  75% { top: 30%; left: 70%; transform: rotate(-30deg); }
+  100% { top: 20%; left: 10%; transform: rotate(15deg); }
+}
+
+@keyframes shine {
+  0% { left: -50%; }
+  100% { left: 150%; }
+}
