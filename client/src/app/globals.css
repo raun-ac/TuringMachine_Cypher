@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  /* The layout.tsx will apply the Inter font class. We also add standard fallbacks. */
+}
+
+/* Base resets for the minimalist aesthetic */
+* {
+  border-color: rgba(0,0,0,0.15);
+}
+
+.divider {
+  border-bottom: 1px solid rgba(0,0,0,0.15);
+}
+.divider-top {
+  border-top: 1px solid rgba(0,0,0,0.15);
+}
+
+/* Custom styles for the little black circle seen in the image at the bottom */
+.home-indicator-circle {
+  width: 24px;
+  height: 24px;
+  background-color: black;
+  border-radius: 50%;
+}
