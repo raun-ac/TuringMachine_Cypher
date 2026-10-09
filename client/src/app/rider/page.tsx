@@ -222,7 +222,7 @@ export default function RiderApp() {
         </>
       ) : (
         /* PENDING ORDERS UI (Green Background) */
-        <div className="absolute inset-0 bg-[#D1F2D9] p-6 md:p-12 flex flex-col z-50">
+        <div className="absolute inset-0 bg-[#D1F2D9] p-6 md:p-12 flex flex-col z-50 overflow-y-auto overflow-x-hidden">
           <nav className="flex justify-between items-center mb-16 animate-reveal">
             <div className="px-4 py-2 bg-black/10 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2">
               <span className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></span>
