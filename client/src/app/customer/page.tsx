@@ -38,6 +38,7 @@ export default function CustomerApp() {
   const [eta, setEta] = useState(12);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [riderRating, setRiderRating] = useState(0);
   const [foodRating, setFoodRating] = useState(0);
   const TOTAL_TRACKING_SECONDS = 60; // 60 seconds for the simulation
@@ -71,13 +72,24 @@ export default function CustomerApp() {
   }, [isTracking]);
 
   useEffect(() => {
-    if (isTracking && eta === 0) {
+    if (isTracking && eta === 0 && !showFeedback) {
       const deliveryTimer = setTimeout(() => {
         setShowFeedback(true);
       }, 2000);
       return () => clearTimeout(deliveryTimer);
     }
-  }, [isTracking, eta]);
+  }, [isTracking, eta, showFeedback]);
+
+  useEffect(() => {
+    if (feedbackSubmitted) {
+      const closeTimer = setTimeout(() => {
+        setShowFeedback(false);
+        setFeedbackSubmitted(false);
+        setIsTracking(false);
+      }, 3000);
+      return () => clearTimeout(closeTimer);
+    }
+  }, [feedbackSubmitted]);
 
   const getServings = (id: string) => servingsMap[id] || 1;
   const setServings = (id: string, val: number) => setServingsMap(prev => ({ ...prev, [id]: val }));
@@ -707,53 +719,70 @@ export default function CustomerApp() {
       {showFeedback && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-reveal">
           <div className="bg-white p-8 md:p-10 rounded-[2rem] text-center max-w-md w-full shadow-2xl relative overflow-hidden flex flex-col items-center">
-             <div className="absolute inset-0 bg-green-500/5 pointer-events-none"></div>
-             <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(34,197,94,0.4)]">
-               <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7"></path></svg>
-             </div>
-             <h3 className="text-2xl font-black uppercase tracking-tighter text-green-600 mb-2">Order Delivered!</h3>
-             <p className="text-gray-500 font-medium mb-8">Enjoy your food! How was your experience?</p>
-             
-             {/* Feedback Form */}
-             <div className="w-full flex flex-col gap-6 relative z-10">
-                <div>
-                  <p className="text-sm font-bold text-gray-800 mb-3">Rate your Rider (Raju)</p>
-                  <div className="flex justify-center gap-3">
-                    {[1,2,3,4,5].map(star => (
-                       <button 
-                         key={`rider-${star}`} 
-                         onClick={() => setRiderRating(star)}
-                         className={`text-4xl transition-colors ${star <= riderRating ? 'text-yellow-400 drop-shadow-sm' : 'text-gray-200 hover:text-gray-300'}`}
-                       >
-                         ★
-                       </button>
-                    ))}
-                  </div>
+            
+            {feedbackSubmitted ? (
+              <div className="animate-[reveal_0.5s_ease-out] flex flex-col items-center w-full py-8">
+                <div className="absolute inset-0 bg-yellow-400/5 pointer-events-none"></div>
+                <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-8 relative">
+                   <div className="absolute inset-0 bg-yellow-400 rounded-full animate-ping opacity-20"></div>
+                   <span className="text-5xl drop-shadow-sm">💖</span>
                 </div>
-                <div className="h-px bg-gray-100 w-full"></div>
-                <div>
-                  <p className="text-sm font-bold text-gray-800 mb-3">Rate the Food Quality</p>
-                  <div className="flex justify-center gap-3">
-                    {[1,2,3,4,5].map(star => (
-                       <button 
-                         key={`food-${star}`} 
-                         onClick={() => setFoodRating(star)}
-                         className={`text-4xl transition-colors ${star <= foodRating ? 'text-yellow-400 drop-shadow-sm' : 'text-gray-200 hover:text-gray-300'}`}
-                       >
-                         ★
-                       </button>
-                    ))}
-                  </div>
-                </div>
-             </div>
+                <h3 className="text-3xl font-black tracking-tighter text-black mb-3">You're Amazing!</h3>
+                <p className="text-gray-500 font-medium text-lg max-w-[250px] leading-relaxed">
+                  Thank you for your feedback! It helps us keep making your experience perfect.
+                </p>
+              </div>
+            ) : (
+              <>
+                 <div className="absolute inset-0 bg-green-500/5 pointer-events-none"></div>
+                 <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(34,197,94,0.4)]">
+                   <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7"></path></svg>
+                 </div>
+                 <h3 className="text-2xl font-black uppercase tracking-tighter text-green-600 mb-2">Order Delivered!</h3>
+                 <p className="text-gray-500 font-medium mb-8">Enjoy your food! How was your experience?</p>
+                 
+                 {/* Feedback Form */}
+                 <div className="w-full flex flex-col gap-6 relative z-10">
+                    <div>
+                      <p className="text-sm font-bold text-gray-800 mb-3">Rate your Rider (Raju)</p>
+                      <div className="flex justify-center gap-3">
+                        {[1,2,3,4,5].map(star => (
+                           <button 
+                             key={`rider-${star}`} 
+                             onClick={() => setRiderRating(star)}
+                             className={`text-4xl transition-colors ${star <= riderRating ? 'text-yellow-400 drop-shadow-sm scale-110' : 'text-gray-200 hover:text-gray-300'} active:scale-95`}
+                           >
+                             ★
+                           </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="h-px bg-gray-100 w-full"></div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-800 mb-3">Rate the Food Quality</p>
+                      <div className="flex justify-center gap-3">
+                        {[1,2,3,4,5].map(star => (
+                           <button 
+                             key={`food-${star}`} 
+                             onClick={() => setFoodRating(star)}
+                             className={`text-4xl transition-colors ${star <= foodRating ? 'text-yellow-400 drop-shadow-sm scale-110' : 'text-gray-200 hover:text-gray-300'} active:scale-95`}
+                           >
+                             ★
+                           </button>
+                        ))}
+                      </div>
+                    </div>
+                 </div>
 
-             <button 
-               onClick={() => { setShowFeedback(false); setIsTracking(false); }} 
-               className="w-full bg-green-500 text-white font-black uppercase tracking-widest text-sm py-4 rounded-xl hover:bg-green-600 transition-colors active:scale-95 mt-8 shadow-[0_4px_20px_rgba(34,197,94,0.3)] disabled:opacity-50"
-               disabled={riderRating === 0 || foodRating === 0}
-             >
-               Submit Feedback
-             </button>
+                 <button 
+                   onClick={() => setFeedbackSubmitted(true)} 
+                   className="w-full bg-green-500 text-white font-black uppercase tracking-widest text-sm py-4 rounded-xl hover:bg-green-600 transition-colors active:scale-95 mt-8 shadow-[0_4px_20px_rgba(34,197,94,0.3)] disabled:opacity-50"
+                   disabled={riderRating === 0 || foodRating === 0}
+                 >
+                   Submit Feedback
+                 </button>
+              </>
+            )}
           </div>
         </div>
       )}
