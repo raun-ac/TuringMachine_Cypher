@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAppStore, OrderItem, Order } from '@/lib/store';
 import { RECIPES } from '@/lib/recipes';
 import { getCartPersonalityMessage } from '@/lib/messageEngine';
@@ -20,6 +21,7 @@ const getCategoryColor = (recipe: typeof RECIPES[0]) => {
 };
 
 export default function CustomerApp() {
+  const router = useRouter();
   const { state, updateState } = useAppStore();
   const [activeCategory, setActiveCategory] = useState('All');
   const [mounted, setMounted] = useState(false);
@@ -28,6 +30,7 @@ export default function CustomerApp() {
   const [orderedStacks, setOrderedStacks] = useState<Record<string, OrderItem[]>>({});
   const [configuringId, setConfiguringId] = useState<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
 
@@ -162,14 +165,16 @@ export default function CustomerApp() {
 
         <div className="pt-6 pb-2 px-6 md:px-12 w-full">
           <nav className="flex justify-between items-center mb-6 animate-reveal max-w-7xl mx-auto w-full relative">
-            <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center font-black tracking-tighter text-xl shadow-lg relative z-10 flex-shrink-0">
-              JD
+            <div className="text-2xl md:text-3xl font-black italic tracking-tight">
+              <span className="text-[#EA4335]">Food</span>
+              <span className="text-[#34A853]">Mode</span>
             </div>
 
-            <div className="flex items-center gap-4 ml-auto relative z-10 flex-shrink-0">
+            <div className="flex items-center gap-3 ml-auto relative z-50 flex-shrink-0">
               <div className="bg-white/60 border border-white px-5 py-2.5 rounded-full font-bold text-sm hidden sm:flex items-center gap-4 shadow-sm">
                 <span className="text-black font-medium tracking-tight">Delivery to: <span className="font-bold">Home</span></span>
               </div>
+              
               <button 
                 onClick={() => setIsCartOpen(true)}
                 className="bg-black text-white w-12 h-12 rounded-full flex items-center justify-center relative shadow-lg hover:scale-105 active:scale-95 transition-all"
@@ -177,6 +182,39 @@ export default function CustomerApp() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                 {totalDishes > 0 && <span className="absolute -top-1 -right-1 bg-yellow-400 text-black text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-black border-2 border-black">{totalDishes}</span>}
               </button>
+
+              <div className="relative">
+                <button 
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="bg-gray-100 text-gray-800 w-12 h-12 rounded-full flex items-center justify-center border-2 border-transparent hover:border-gray-200 transition-all shadow-sm active:scale-95"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                </button>
+
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden animate-[reveal_0.2s_ease-out]">
+                    <div className="flex flex-col py-2">
+                      <button className="px-5 py-3 text-left text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3">
+                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                         Your orders
+                      </button>
+                      <button className="px-5 py-3 text-left text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3">
+                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                         Help and Support
+                      </button>
+                      <button className="px-5 py-3 text-left text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3">
+                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                         Edit profile
+                      </button>
+                      <div className="h-px bg-gray-100 my-1 mx-2"></div>
+                      <button onClick={() => router.push('/auth')} className="px-5 py-3 text-left text-sm font-bold text-red-600 hover:bg-red-50 transition-colors flex items-center gap-3 w-full">
+                         <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                         Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </nav>
 
