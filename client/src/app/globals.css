@@ -6,12 +6,13 @@
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  /* The layout.tsx will apply the Inter font class. We also add standard fallbacks. */
+  /* Premium paper noise texture overlay */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+  background-attachment: fixed;
 }
 
-/* Base resets for the minimalist aesthetic */
 * {
   border-color: rgba(0,0,0,0.15);
 }
@@ -23,10 +24,59 @@ body {
   border-top: 1px solid rgba(0,0,0,0.15);
 }
 
-/* Custom styles for the little black circle seen in the image at the bottom */
 .home-indicator-circle {
   width: 24px;
   height: 24px;
   background-color: black;
   border-radius: 50%;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+/* Custom Creative Animations */
+@keyframes revealUp {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-reveal {
+  animation: revealUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+
+/* The liquid button effect */
+.btn-liquid {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.btn-liquid::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300%;
+  height: 300%;
+  background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.5s ease-out;
+  border-radius: 50%;
+}
+.btn-liquid:active::after {
+  transform: translate(-50%, -50%) scale(1);
+  transition: transform 0s;
+}
+
+/* Ticker tape animation for the admin panel */
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-ticker {
+  animation: ticker 20s linear infinite;
+  display: flex;
+  width: max-content;
 }

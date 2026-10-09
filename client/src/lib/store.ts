@@ -1,8 +1,7 @@
 "use client";
-
 import { useState, useEffect, useCallback } from 'react';
 
-const STORE_KEY = 'antigravity_hackathon_state';
+const STORE_KEY = 'antigravity_hackathon_state_v2';
 
 export type Order = {
   id: string;
@@ -14,25 +13,34 @@ export type Order = {
   timestamp: number;
 };
 
+export type InventoryItem = {
+  name: string;
+  stock: number;
+  sub?: string;
+};
+
 export type AppState = {
-  inventory: {
-    heavy_cream: number;
-    cilantro: number;
-  };
+  inventory: Record<string, InventoryItem>;
   orders: Order[];
   riderOnline: boolean;
 };
 
-const defaultState: AppState = {
+export const defaultState: AppState = {
   inventory: {
-    heavy_cream: 1, // Start with 1 so the first order uses it, next order triggers sub
-    cilantro: 12,
+    heavy_cream: { name: 'Heavy Cream', stock: 1, sub: 'Greek Yogurt' },
+    avocado: { name: 'Fresh Avocado', stock: 5, sub: 'Edamame' },
+    chicken: { name: 'Chicken Breast', stock: 12 },
+    tomatoes: { name: 'Roma Tomatoes', stock: 8, sub: 'Canned Tomatoes' },
+    basil: { name: 'Fresh Basil', stock: 0, sub: 'Dried Oregano' },
+    mango: { name: 'Alphonso Mango', stock: 2, sub: 'Frozen Peaches' }
   },
-  orders: [],
+  orders: [
+    { id: 'ORD-091', recipe: 'Spaghetti Bolognese', price: 18.50, status: 'completed', substituted: false, timestamp: Date.now() - 3600000 },
+    { id: 'ORD-092', recipe: 'Avocado Bowl', price: 16.00, status: 'completed', substituted: false, timestamp: Date.now() - 1800000 },
+  ],
   riderOnline: true,
 };
 
-// Global memory for the same tab to avoid multiple instances desyncing
 let memoryState = defaultState;
 const listeners = new Set<(state: AppState) => void>();
 
@@ -40,7 +48,6 @@ export function useAppStore() {
   const [state, setState] = useState<AppState>(defaultState);
 
   useEffect(() => {
-    // Initial load
     const stored = localStorage.getItem(STORE_KEY);
     if (stored) {
       memoryState = JSON.parse(stored);
@@ -53,7 +60,6 @@ export function useAppStore() {
     const listener = (newState: AppState) => setState(newState);
     listeners.add(listener);
 
-    // Cross-tab sync
     const handleStorage = (e: StorageEvent) => {
       if (e.key === STORE_KEY && e.newValue) {
         const next = JSON.parse(e.newValue);
@@ -73,7 +79,7 @@ export function useAppStore() {
     const next = updater(memoryState);
     memoryState = next;
     localStorage.setItem(STORE_KEY, JSON.stringify(next));
-    listeners.forEach(l => l(next)); // notify same tab
+    listeners.forEach(l => l(next)); 
   }, []);
 
   return { state, updateState };
