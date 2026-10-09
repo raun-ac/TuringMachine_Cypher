@@ -16,7 +16,7 @@ export type Order = {
   recipe: string;
   portions: number;
   price: number;
-  status: 'pending' | 'assigned' | 'picking' | 'delivering' | 'completed';
+  status: 'cart' | 'pending' | 'assigned' | 'picking' | 'delivering' | 'completed';
   items: OrderItem[];
   timestamp: number;
 };

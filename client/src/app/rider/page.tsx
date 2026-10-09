@@ -10,20 +10,38 @@ export default function RiderApp() {
 
   if (!mounted) return null;
 
-  const pendingOrder = state.orders.find(o => o.status === 'pending');
-  const activeOrder = state.orders.find(o => o.status === 'assigned');
+  const pendingOrders = state.orders.filter(o => o.status === 'pending');
+  const activeOrders = state.orders.filter(o => o.status === 'assigned');
   
-  const currentOrder = activeOrder || pendingOrder;
+  const currentOrders = activeOrders.length > 0 ? activeOrders : pendingOrders;
+  const isActive = activeOrders.length > 0;
+  const isPending = activeOrders.length === 0 && pendingOrders.length > 0;
 
   const acceptOrder = () => {
-    if (!currentOrder) return;
+    if (pendingOrders.length === 0) return;
     updateState(prev => ({
       ...prev,
       orders: prev.orders.map(o => 
-        o.id === currentOrder.id ? { ...o, status: 'assigned' } : o
+        o.status === 'pending' ? { ...o, status: 'assigned' } : o
       )
     }));
   };
+
+  const totalPrice = currentOrders.reduce((sum, o) => sum + o.price, 0);
+  const batchId = currentOrders.length > 0 ? currentOrders[0].id : '';
+  
+  // Group identical ingredients across all dishes in the checkout
+  const allItems = currentOrders.flatMap(o => o.items);
+  const groupedItems = Object.values(
+    allItems.reduce((acc, item) => {
+      if (!acc[item.ingredientId]) {
+         acc[item.ingredientId] = { ...item };
+      } else {
+         acc[item.ingredientId].qty += item.qty;
+      }
+      return acc;
+    }, {} as Record<string, typeof allItems[0]>)
+  );
 
   return (
     <main className="min-h-screen bg-[#D1F2D9] text-black p-6 md:p-12 flex flex-col relative overflow-hidden">
@@ -37,13 +55,13 @@ export default function RiderApp() {
 
       <div className="flex-1 max-w-md mx-auto w-full pb-32">
         <h1 className="text-7xl font-medium leading-[0.95] tracking-[-0.05em] mb-12 animate-reveal delay-100">
-          {activeOrder ? 'Active\nDelivery' : (pendingOrder ? 'New Delivery\nRequest' : 'Looking for\nOrders...')}
+          {isActive ? 'Active\nDelivery' : (isPending ? 'New Delivery\nRequest' : 'Looking for\nOrders...')}
         </h1>
         
         <div className="mb-12 animate-reveal delay-200">
           <div className="flex h-8 bg-black/10 rounded-lg overflow-hidden w-full mb-3">
-            <div className={`transition-all duration-1000 ease-out bg-black ${activeOrder ? 'w-4/5' : (pendingOrder ? 'w-1/2' : 'w-0')}`}></div>
-            <div className={`transition-all duration-1000 ease-out bg-black/30 ${activeOrder ? 'w-1/5' : (pendingOrder ? 'w-1/4' : 'w-0')}`}></div>
+            <div className={`transition-all duration-1000 ease-out bg-black ${isActive ? 'w-4/5' : (isPending ? 'w-1/2' : 'w-0')}`}></div>
+            <div className={`transition-all duration-1000 ease-out bg-black/30 ${isActive ? 'w-1/5' : (isPending ? 'w-1/4' : 'w-0')}`}></div>
           </div>
           <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-black/50">
              <span>Distance</span>
@@ -52,15 +70,15 @@ export default function RiderApp() {
           </div>
         </div>
 
-        {currentOrder ? (
+        {currentOrders.length > 0 ? (
           <div className="animate-reveal delay-300">
             <div className="mb-8 bg-white/40 p-6 rounded-3xl shadow-xl">
               <div className="pb-6 border-b border-black/10 flex justify-between items-start">
                  <div>
-                   <p className="text-7xl font-medium tracking-tight mb-2">₹{currentOrder.price}</p>
+                   <p className="text-7xl font-medium tracking-tight mb-2">₹{totalPrice}</p>
                    <p className="text-sm font-medium flex items-center gap-2">
                      <span className="w-2 h-2 border border-black block"></span>
-                     Store #04 • {currentOrder.id}
+                     Store #04 • {batchId}
                    </p>
                  </div>
                  <p className="font-medium text-black/50">+1.2mi</p>
@@ -69,7 +87,7 @@ export default function RiderApp() {
               <div className="py-6 border-b border-black/10">
                  <h4 className="font-bold uppercase tracking-widest text-xs mb-4 text-black/50">Ingredient Picklist (Stack)</h4>
                  <ul className="space-y-3">
-                   {currentOrder.items.map((item, idx) => (
+                   {groupedItems.map((item, idx) => (
                      <li key={idx} className="flex items-center justify-between font-medium">
                        <span className="flex items-center gap-3">
                          <span className="w-6 h-6 rounded-full bg-black/10 flex items-center justify-center text-xs">{item.qty}</span>
@@ -96,12 +114,12 @@ export default function RiderApp() {
                      Est. Arrival
                    </p>
                  </div>
-                 <p className="font-bold text-black uppercase tracking-widest text-xs mt-3">{activeOrder ? 'PICKING UP' : 'ASAP'}</p>
+                 <p className="font-bold text-black uppercase tracking-widest text-xs mt-3">{isActive ? 'PICKING UP' : 'ASAP'}</p>
               </div>
             </div>
             
             <div className="relative z-10">
-               {!activeOrder ? (
+               {!isActive ? (
                  <button 
                    onClick={acceptOrder}
                    className="w-full bg-black text-[#D1F2D9] py-5 rounded-full text-xl font-medium hover:bg-black/80 transition-all btn-liquid active:scale-95 shadow-2xl"
