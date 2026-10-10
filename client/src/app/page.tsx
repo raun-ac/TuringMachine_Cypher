@@ -1,11 +1,13 @@
-import Link from 'next/link';
+import Link from "next/link";
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-[#F4F4F4] text-black p-6 md:p-12 flex flex-col items-center justify-center">
       <div className="w-full max-w-3xl">
         <h1 className="text-7xl md:text-9xl font-medium leading-[0.95] tracking-[-0.05em] mb-20 text-center">
-          Project<br />Antigravity
+          Dish
+          <br />
+          Dash
         </h1>
 
         <div className="space-y-0 w-full max-w-lg mx-auto">
