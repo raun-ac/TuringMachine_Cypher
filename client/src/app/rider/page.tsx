@@ -1,10 +1,21 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
-import { useAppStore, Order } from '@/lib/store';
+import { useAppStore, Order, defaultState } from '@/lib/store';
+
+import { useRouter } from 'next/navigation';
 
 export default function RiderApp() {
+  const router = useRouter();
   const { state, updateState } = useAppStore();
   const [mounted, setMounted] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  useEffect(() => {
+    if (mounted && !state.auth.rider) {
+      router.replace('/auth/rider');
+    }
+  }, [mounted, state.auth.rider, router]);
+
   const [isExpanded, setIsExpanded] = useState(false);
   const [startY, setStartY] = useState(0);
   const [showRiderDetails, setShowRiderDetails] = useState(false);
@@ -160,7 +171,7 @@ export default function RiderApp() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F4F4F6] text-black flex flex-col relative overflow-hidden font-sans">
+    <main className="min-h-screen bg-[#FFF9F0] text-black flex flex-col relative overflow-hidden font-sans">
       {isActive ? (
         <>
           {/* THE REAL MAP */}
@@ -433,12 +444,50 @@ export default function RiderApp() {
       ) : (
         /* PENDING ORDERS UI (Green Background) */
         <div className="absolute inset-0 bg-[#D1F2D9] p-6 md:p-12 flex flex-col z-50 overflow-y-auto overflow-x-hidden">
-          <nav className="flex justify-between items-center mb-16 animate-reveal">
+          <nav className="flex justify-between items-center mb-16 animate-reveal relative z-50">
             <div className="px-4 py-2 bg-black/10 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2">
               <span className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></span>
               Rider
             </div>
-            <button className="text-3xl font-light w-12 h-12 rounded-full flex items-center justify-center bg-black/5">⌄</button>
+            <div className="relative">
+              <button 
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className="text-3xl font-light w-12 h-12 rounded-full flex items-center justify-center bg-black/5 active:scale-95 transition-transform"
+              >
+                <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+              </button>
+
+              {isProfileOpen && (
+                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden animate-[reveal_0.2s_ease-out]">
+                  <div className="flex flex-col py-2">
+                    <button className="px-5 py-3 text-left text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3">
+                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                       Your profile
+                    </button>
+                    <button className="px-5 py-3 text-left text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3">
+                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                       Orders delivered
+                    </button>
+                    <button className="px-5 py-3 text-left text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3">
+                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                       Edit profile
+                    </button>
+                    <div className="h-px bg-gray-100 my-1 mx-2"></div>
+                    <button 
+                      onClick={() => { 
+                        updateState(prev => ({ ...defaultState, auth: { ...prev.auth, rider: false } }));
+                        setIsProfileOpen(false); 
+                        router.push('/auth/rider'); 
+                      }} 
+                      className="px-5 py-3 text-left text-sm font-bold text-red-600 hover:bg-red-50 transition-colors flex items-center gap-3 w-full"
+                    >
+                       <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                       Logout
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </nav>
 
           <div className="flex-1 max-w-md mx-auto w-full pb-32">

@@ -2,9 +2,19 @@
 import { useState, useEffect } from 'react';
 import { useAppStore, defaultState } from '@/lib/store';
 
+import { useRouter } from 'next/navigation';
+
 export default function AdminDashboard() {
+  const router = useRouter();
   const { state, updateState } = useAppStore();
   const [mounted, setMounted] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  useEffect(() => {
+    if (mounted && !state.auth.admin) {
+      router.replace('/auth/admin');
+    }
+  }, [mounted, state.auth.admin, router]);
 
   useEffect(() => setMounted(true), []);
 
@@ -18,7 +28,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <main className="min-h-screen bg-[#D4E5F2] text-black flex flex-col relative overflow-hidden">
+    <main className="min-h-screen bg-[#FFF9F0] text-black flex flex-col relative overflow-hidden">
       
       {/* Ticker Tape */}
       <div className="bg-black text-[#D4E5F2] overflow-hidden py-3 border-b border-white/10">
@@ -41,17 +51,61 @@ export default function AdminDashboard() {
 
       <div className="p-6 md:p-12 flex flex-col lg:flex-row gap-12 flex-1">
         {/* Sidebar */}
-        <aside className="w-full lg:w-72 flex flex-col animate-reveal">
+        <aside className="w-full lg:w-72 flex flex-col animate-reveal relative z-50">
           <nav className="flex justify-between items-center mb-16">
-            <div className="px-4 py-2 bg-black/10 rounded-full text-xs font-bold uppercase tracking-widest">
+            <div className="px-4 py-2 bg-black/10 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
               Admin
             </div>
-            <button 
-              onClick={resetDemo}
-              className="text-xs font-bold uppercase tracking-widest bg-black text-[#D4E5F2] px-4 py-2 rounded-full hover:bg-black/80 transition-transform hover:scale-105 active:scale-95"
-            >
-              Reset Demo
-            </button>
+            
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={resetDemo}
+                className="text-xs font-bold uppercase tracking-widest bg-black text-[#D4E5F2] px-4 py-2 rounded-full hover:bg-black/80 transition-transform hover:scale-105 active:scale-95 hidden sm:block"
+              >
+                Reset Demo
+              </button>
+
+              <div className="relative">
+                <button 
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="w-10 h-10 rounded-full flex items-center justify-center bg-black/10 active:scale-95 transition-transform hover:bg-black/20"
+                >
+                  <svg className="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                </button>
+
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden animate-[reveal_0.2s_ease-out] z-50">
+                    <div className="flex flex-col py-2">
+                      <button className="px-5 py-3 text-left text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3">
+                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                         Your profile
+                      </button>
+                      <button className="px-5 py-3 text-left text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3">
+                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                         Orders delivered
+                      </button>
+                      <button className="px-5 py-3 text-left text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3">
+                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                         Edit profile
+                      </button>
+                      <div className="h-px bg-gray-100 my-1 mx-2"></div>
+                      <button 
+                        onClick={() => { 
+                          updateState(prev => ({ ...defaultState, auth: { ...prev.auth, admin: false } }));
+                          setIsProfileOpen(false);
+                          router.push('/auth/admin');
+                        }} 
+                        className="px-5 py-3 text-left text-sm font-bold text-red-600 hover:bg-red-50 transition-colors flex items-center gap-3 w-full"
+                      >
+                         <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                         Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </nav>
           
           <div className="hidden lg:block">

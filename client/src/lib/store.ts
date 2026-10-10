@@ -32,6 +32,11 @@ export type AppState = {
   inventory: Record<string, InventoryItem>;
   orders: Order[];
   riderOnline: boolean;
+  auth: {
+    customer: boolean;
+    admin: boolean;
+    rider: boolean;
+  };
 };
 
 export const defaultState: AppState = {
@@ -70,6 +75,11 @@ export const defaultState: AppState = {
   },
   orders: [],
   riderOnline: true,
+  auth: {
+    customer: false,
+    admin: false,
+    rider: false,
+  },
 };
 
 let memoryState = defaultState;
@@ -82,8 +92,12 @@ export function useAppStore() {
     const stored = localStorage.getItem(STORE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      parsed.inventory = { ...defaultState.inventory, ...parsed.inventory };
-      memoryState = parsed;
+      memoryState = {
+        ...defaultState,
+        ...parsed,
+        inventory: { ...defaultState.inventory, ...(parsed.inventory || {}) },
+        auth: { ...defaultState.auth, ...(parsed.auth || {}) }
+      };
       setState(memoryState);
     } else {
       localStorage.setItem(STORE_KEY, JSON.stringify(defaultState));

@@ -1,9 +1,11 @@
 "use client";
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAppStore } from '@/lib/store';
 
 export default function AuthPage() {
   const router = useRouter();
+  const { updateState } = useAppStore();
 
   const [step, setStep] = useState<'AUTH' | 'LOCATION'>('AUTH');
   const [phone, setPhone] = useState('');
@@ -48,11 +50,12 @@ export default function AuthPage() {
   };
 
   const handleSaveLocation = () => {
+    updateState(prev => ({ ...prev, auth: { ...prev.auth, customer: true } }));
     router.push('/customer');
   };
 
   return (
-    <main className="min-h-screen bg-[#FDFDFD] flex items-center justify-center p-4 md:p-8 font-sans relative overflow-hidden">
+    <main className="min-h-screen bg-[#FFF9F0] flex items-center justify-center p-4 md:p-8 font-sans relative overflow-hidden">
 
       {/* MOCK SMS TOAST NOTIFICATION */}
       {mockSms && (
@@ -66,30 +69,26 @@ export default function AuthPage() {
               <span className="text-gray-400 text-xs font-medium">Just now</span>
             </div>
             <p className="text-sm text-gray-600 leading-snug">
-              Your FoodMode verification code is <strong className="text-gray-900 text-base tracking-widest">{mockSms}</strong>. Don't share this with anyone!
+              Your DishDash verification code is <strong className="text-gray-900 text-base tracking-widest">{mockSms}</strong>. Don't share this with anyone!
             </p>
           </div>
         </div>
       )}
 
-      {/* Background Abstract Shapes (FoodMode style) */}
-      <div className="absolute top-0 left-[20%] w-64 h-64 bg-pink-200 rounded-full mix-blend-multiply filter blur-2xl opacity-50 -translate-y-1/2"></div>
-      <div className="absolute bottom-0 left-0 w-64 h-64 bg-yellow-300 rounded-full mix-blend-multiply filter blur-sm opacity-70 translate-y-1/2 -translate-x-1/2"></div>
-      <div className="absolute top-0 right-0 w-96 h-96 bg-orange-200 rounded-full mix-blend-multiply filter blur-3xl opacity-60 translate-x-1/4 -translate-y-1/4"></div>
+      {/* Background Abstract Shapes (DishDash style) */}
+      <div className="absolute top-0 left-[20%] w-64 h-64 bg-[#2D5A27] rounded-full mix-blend-multiply filter blur-2xl opacity-50 -translate-y-1/2"></div>
+      <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#FFF9F0] rounded-full mix-blend-multiply filter blur-sm opacity-70 translate-y-1/2 -translate-x-1/2"></div>
+      <div className="absolute top-0 right-0 w-96 h-96 bg-[#FF6347] rounded-full mix-blend-multiply filter blur-3xl opacity-60 translate-x-1/4 -translate-y-1/4"></div>
       <div className="absolute top-[60%] left-0 w-32 h-64 bg-black rounded-r-full opacity-90 -translate-x-1/2"></div>
 
-      {/* STEP 1: AUTHENTICATION (FoodMode UI) */}
+      {/* STEP 1: AUTHENTICATION (DishDash UI) */}
       {step === 'AUTH' && (
         <div className="w-full max-w-6xl bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] flex flex-col h-[85vh] min-h-[650px] relative z-10 animate-reveal overflow-hidden border border-gray-100">
 
           {/* Top Header */}
           <div className="flex justify-between items-center px-10 pt-8 pb-4 bg-white z-20 shadow-sm relative">
-            <div className="text-2xl font-black italic tracking-tight">
-              <span className="text-[#EA4335]">Food</span>
-              <span className="text-[#34A853]">Mode</span>
-            </div>
-            <div className="flex items-center font-bold text-sm text-gray-400 uppercase tracking-widest">
-              Secure Login
+            <div className="flex items-center">
+              <img src="/dishdash-logo.png" alt="DishDash Logo" className="h-12 w-auto object-contain" />
             </div>
           </div>
 
