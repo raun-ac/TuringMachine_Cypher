@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore, OrderItem, Order } from '@/lib/store';
 import { RECIPES } from '@/lib/recipes';
@@ -43,33 +43,35 @@ export default function CustomerApp() {
   const [carMoving, setCarMoving] = useState(false);
   const [riderRating, setRiderRating] = useState(0);
   const [foodRating, setFoodRating] = useState(0);
+  const svgRef = useRef<SVGSVGElement>(null);
   const TOTAL_TRACKING_SECONDS = 60; // 60 seconds for the simulation
   const INITIAL_ETA = 12;
 
   useEffect(() => setMounted(true), []);
 
-  useEffect(() => {
-    if (isTracking) {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => setMapCenter(`${pos.coords.latitude},${pos.coords.longitude}`),
-          () => console.log("Geolocation denied")
-        );
-      }
-      
-      let movingTimer: NodeJS.Timeout;
-      const partnerTimer = setTimeout(() => {
-        setPartnerAssigned(true);
-        movingTimer = setTimeout(() => {
-          setCarMoving(true);
-        }, 4000);
-      }, 25000);
+  const latestOrder = state.orders[state.orders.length - 1];
+  const orderStatus = latestOrder?.status || 'cart';
 
-      return () => {
-        clearTimeout(partnerTimer);
-        clearTimeout(movingTimer);
-      };
-    } else {
+  useEffect(() => {
+    if (isTracking && latestOrder) {
+      if (orderStatus === 'pending') {
+        setPartnerAssigned(false);
+        setCarMoving(false);
+      } else if (orderStatus === 'assigned') {
+        setPartnerAssigned(true);
+        setCarMoving(false);
+        setEta(5); // Start 5 min countdown for pickup
+      } else if (orderStatus === 'picking') {
+        setPartnerAssigned(true);
+        setCarMoving(false);
+      } else if (orderStatus === 'delivering') {
+        setPartnerAssigned(true);
+        setCarMoving(true);
+        setEta(10); // Start 10 min countdown for delivery
+      } else if (orderStatus === 'completed') {
+        setShowFeedback(true);
+      }
+    } else if (!isTracking) {
       setEta(INITIAL_ETA);
       setMapCenter('New York');
       setShowFeedback(false);
@@ -79,28 +81,50 @@ export default function CustomerApp() {
       setRiderRating(0);
       setFoodRating(0);
     }
+  }, [isTracking, orderStatus]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isTracking && latestOrder) {
+      if (orderStatus === 'assigned') {
+        interval = setInterval(() => {
+          if (latestOrder.phaseStartTime) {
+             const elapsed = (Date.now() - latestOrder.phaseStartTime) / 1000;
+             setEta(Math.max(0, 5 - Math.floor(elapsed / 6)));
+          }
+        }, 1000); // Check every second
+      } else if (orderStatus === 'delivering') {
+        interval = setInterval(() => {
+          if (latestOrder.phaseStartTime) {
+             const elapsed = (Date.now() - latestOrder.phaseStartTime) / 1000;
+             setEta(Math.max(0, 10 - Math.floor(elapsed / 6)));
+          }
+        }, 1000); // Check every second
+      }
+    }
+    return () => clearInterval(interval);
+  }, [isTracking, orderStatus, latestOrder?.phaseStartTime]);
+
+  // SVG Animation Time Sync
+  useEffect(() => {
+    if (isTracking && svgRef.current && latestOrder?.phaseStartTime) {
+      const elapsed = (Date.now() - latestOrder.phaseStartTime) / 1000;
+      setTimeout(() => {
+        if (svgRef.current) {
+          svgRef.current.setCurrentTime(Math.max(0, elapsed));
+        }
+      }, 50);
+    }
+  }, [isTracking, orderStatus, latestOrder?.phaseStartTime]);  useEffect(() => {
+    if (isTracking) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => setMapCenter(`${pos.coords.latitude},${pos.coords.longitude}`),
+          () => console.log("Geolocation denied")
+        );
+      }
+    }
   }, [isTracking]);
-
-  useEffect(() => {
-    if (isTracking && carMoving) {
-      // Sync ETA reduction perfectly with the 60s route animation
-      // 12 mins -> 0 mins over 60 seconds = 1 min reduction every 5 seconds
-      const interval = setInterval(() => {
-        setEta(prev => Math.max(0, prev - 1));
-      }, (TOTAL_TRACKING_SECONDS / INITIAL_ETA) * 1000); 
-      
-      return () => clearInterval(interval);
-    }
-  }, [isTracking, carMoving]);
-
-  useEffect(() => {
-    if (isTracking && eta === 0 && !showFeedback) {
-      const deliveryTimer = setTimeout(() => {
-        setShowFeedback(true);
-      }, 2000);
-      return () => clearTimeout(deliveryTimer);
-    }
-  }, [isTracking, eta, showFeedback]);
 
   useEffect(() => {
     if (feedbackSubmitted) {
@@ -636,10 +660,13 @@ export default function CustomerApp() {
               ></iframe>
               
               {/* Simulated Live Tracking Path (SVG) with STRICT Rider Motion */}
-              <svg key={carMoving ? 'moving' : 'static'} className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 100 1150 800" preserveAspectRatio="xMidYMid meet">
+              <svg ref={svgRef} key={orderStatus} className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 100 1150 800" preserveAspectRatio="xMidYMid meet">
+                <path id="toStoreRoute" d="M 150,350 L -50,350 L -50,750 L 150,750" fill="none" />
+                <path id="toCustomerRoute" d="M 150,750 L 150,550 L 350,550 L 350,350 L 550,350 L 550,250 L 850,250 L 850,450 L 1000,450" fill="none" />
+                
+                {/* Visible Combined Route */}
                 <path 
-                  id="deliveryRoute"
-                  d="M 150,750 L 150,550 L 350,550 L 350,350 L 550,350 L 550,250 L 850,250 L 850,450 L 1000,450" 
+                  d="M 150,350 L -50,350 L -50,750 L 150,750 L 150,550 L 350,550 L 350,350 L 550,350 L 550,250 L 850,250 L 850,450 L 1000,450" 
                   fill="none" 
                   stroke="#2B64E3" 
                   strokeWidth="8" 
@@ -647,6 +674,16 @@ export default function CustomerApp() {
                   strokeLinejoin="round"
                   className="opacity-90 drop-shadow-md"
                 />
+
+                {/* Rider Start Pin */}
+                <g transform="translate(150, 350)">
+                  <circle cx="0" cy="0" r="6" fill="#10B981" />
+                  <foreignObject x="-40" y="-35" width="80" height="26">
+                    <div className="bg-white px-2.5 py-1 rounded-md text-[10px] font-bold shadow-sm border border-gray-200 flex items-center justify-center gap-1.5 w-max mx-auto text-green-700">
+                      Rider
+                    </div>
+                  </foreignObject>
+                </g>
                 
                 {/* Pickup Pin */}
                 <g transform="translate(150, 750)">
@@ -669,27 +706,102 @@ export default function CustomerApp() {
                   </foreignObject>
                 </g>
 
-                {/* Top-down vehicle perfectly following and rotating along the path */}
-                <g transform={!carMoving ? "translate(150, 750) rotate(-90)" : ""}>
-                  <foreignObject x="-24" y="-12" width="48" height="24">
-                    <div className="w-full h-full bg-[#1A1A1A] rounded-md shadow-2xl border border-gray-700 relative">
-                       {/* Windshield */}
-                       <div className="absolute right-3 top-1 bottom-1 w-2 bg-gray-900 rounded-sm"></div>
-                       <div className="absolute left-2 top-1 bottom-1 w-1.5 bg-gray-900 rounded-sm"></div>
-                       {/* Headlights (right side is the front) */}
-                       <div className="absolute right-0 top-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
-                       <div className="absolute right-0 bottom-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
-                       {/* Taillights */}
-                       <div className="absolute left-0 top-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
-                       <div className="absolute left-0 bottom-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
-                    </div>
-                  </foreignObject>
-                  {carMoving && (
-                    <animateMotion dur="60s" repeatCount="1" fill="freeze" rotate="auto">
-                      <mpath href="#deliveryRoute" />
+                {/* Top-down vehicle dynamic rendering based on phase */}
+                {(orderStatus === 'pending' || orderStatus === 'cart') && (
+                  <g transform="translate(150, 350) rotate(180)">
+                    <foreignObject x="-24" y="-12" width="48" height="24">
+                      <div className="w-full h-full bg-[#1A1A1A] rounded-md shadow-2xl border border-gray-700 relative">
+                         {/* Windshield */}
+                         <div className="absolute right-3 top-1 bottom-1 w-2 bg-gray-900 rounded-sm"></div>
+                         <div className="absolute left-2 top-1 bottom-1 w-1.5 bg-gray-900 rounded-sm"></div>
+                         {/* Headlights */}
+                         <div className="absolute right-0 top-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                         <div className="absolute right-0 bottom-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                         {/* Taillights */}
+                         <div className="absolute left-0 top-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
+                         <div className="absolute left-0 bottom-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
+                      </div>
+                    </foreignObject>
+                  </g>
+                )}
+
+                {orderStatus === 'assigned' && (
+                  <g key="assigned">
+                    <foreignObject x="-24" y="-12" width="48" height="24">
+                      <div className="w-full h-full bg-[#1A1A1A] rounded-md shadow-2xl border border-gray-700 relative">
+                         {/* Windshield */}
+                         <div className="absolute right-3 top-1 bottom-1 w-2 bg-gray-900 rounded-sm"></div>
+                         <div className="absolute left-2 top-1 bottom-1 w-1.5 bg-gray-900 rounded-sm"></div>
+                         {/* Headlights (right side is the front) */}
+                         <div className="absolute right-0 top-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                         <div className="absolute right-0 bottom-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                         {/* Taillights */}
+                         <div className="absolute left-0 top-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
+                         <div className="absolute left-0 bottom-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
+                      </div>
+                    </foreignObject>
+                    <animateMotion dur="30s" repeatCount="1" fill="freeze" rotate="auto">
+                      <mpath href="#toStoreRoute" />
                     </animateMotion>
-                  )}
-                </g>
+                  </g>
+                )}
+
+                {orderStatus === 'picking' && (
+                  <g transform="translate(150, 750) rotate(0)">
+                    <foreignObject x="-24" y="-12" width="48" height="24">
+                      <div className="w-full h-full bg-[#1A1A1A] rounded-md shadow-2xl border border-gray-700 relative">
+                         {/* Windshield */}
+                         <div className="absolute right-3 top-1 bottom-1 w-2 bg-gray-900 rounded-sm"></div>
+                         <div className="absolute left-2 top-1 bottom-1 w-1.5 bg-gray-900 rounded-sm"></div>
+                         {/* Headlights */}
+                         <div className="absolute right-0 top-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                         <div className="absolute right-0 bottom-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                         {/* Taillights */}
+                         <div className="absolute left-0 top-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
+                         <div className="absolute left-0 bottom-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
+                      </div>
+                    </foreignObject>
+                  </g>
+                )}
+
+                {orderStatus === 'delivering' && (
+                  <g key="delivering">
+                    <foreignObject x="-24" y="-12" width="48" height="24">
+                      <div className="w-full h-full bg-[#1A1A1A] rounded-md shadow-2xl border border-gray-700 relative">
+                         {/* Windshield */}
+                         <div className="absolute right-3 top-1 bottom-1 w-2 bg-gray-900 rounded-sm"></div>
+                         <div className="absolute left-2 top-1 bottom-1 w-1.5 bg-gray-900 rounded-sm"></div>
+                         {/* Headlights (right side is the front) */}
+                         <div className="absolute right-0 top-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                         <div className="absolute right-0 bottom-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                         {/* Taillights */}
+                         <div className="absolute left-0 top-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
+                         <div className="absolute left-0 bottom-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
+                      </div>
+                    </foreignObject>
+                    <animateMotion dur="60s" repeatCount="1" fill="freeze" rotate="auto">
+                      <mpath href="#toCustomerRoute" />
+                    </animateMotion>
+                  </g>
+                )}
+
+                {orderStatus === 'completed' && (
+                  <g transform="translate(1000, 450) rotate(0)">
+                    <foreignObject x="-24" y="-12" width="48" height="24">
+                      <div className="w-full h-full bg-[#1A1A1A] rounded-md shadow-2xl border border-gray-700 relative">
+                         {/* Windshield */}
+                         <div className="absolute right-3 top-1 bottom-1 w-2 bg-gray-900 rounded-sm"></div>
+                         <div className="absolute left-2 top-1 bottom-1 w-1.5 bg-gray-900 rounded-sm"></div>
+                         {/* Headlights */}
+                         <div className="absolute right-0 top-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                         <div className="absolute right-0 bottom-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                         {/* Taillights */}
+                         <div className="absolute left-0 top-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
+                         <div className="absolute left-0 bottom-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
+                      </div>
+                    </foreignObject>
+                  </g>
+                )}
               </svg>
             </div>
 
@@ -698,10 +810,17 @@ export default function CustomerApp() {
               <div className="bg-white rounded-[2rem] p-6 shadow-2xl border border-gray-100 flex flex-col gap-5">
                 <div>
                   <h3 className="text-xl font-bold text-black tracking-tight mb-1">Your order is {eta} min away</h3>
-                  {partnerAssigned ? (
-                    <p className="text-sm font-medium text-gray-500 flex items-center gap-2 animate-[reveal_0.4s_ease-out]">License Plate: <span className="bg-gray-100 px-2 py-0.5 rounded font-mono font-bold text-gray-700 border border-gray-200">MH 12 AB 1234</span></p>
-                  ) : (
+                  {orderStatus === 'pending' && (
                     <p className="text-sm font-bold text-yellow-600 flex items-center gap-2 animate-pulse">Waiting for delivery partner to be assigned...</p>
+                  )}
+                  {orderStatus === 'assigned' && (
+                    <p className="text-sm font-bold text-blue-600 flex items-center gap-2 animate-pulse">Partner assigned! Navigating to store...</p>
+                  )}
+                  {orderStatus === 'picking' && (
+                    <p className="text-sm font-bold text-orange-600 flex items-center gap-2 animate-pulse">Rider is picking up your order...</p>
+                  )}
+                  {(orderStatus === 'delivering' || orderStatus === 'completed') && (
+                    <p className="text-sm font-medium text-gray-500 flex items-center gap-2 animate-[reveal_0.4s_ease-out]">License Plate: <span className="bg-gray-100 px-2 py-0.5 rounded font-mono font-bold text-gray-700 border border-gray-200">MH 12 AB 1234</span></p>
                   )}
                 </div>
 

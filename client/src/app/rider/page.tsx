@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '@/lib/store';
 
 export default function RiderApp() {
@@ -8,27 +8,119 @@ export default function RiderApp() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [startY, setStartY] = useState(0);
   const [showRiderDetails, setShowRiderDetails] = useState(false);
-
-  useEffect(() => setMounted(true), []);
-
-  if (!mounted) return null;
+  const [mapCenter, setMapCenter] = useState('New York');
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDraggingMap, setIsDraggingMap] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const svgRef = useRef<SVGSVGElement>(null);
+  
+  const [deliveryPhase, setDeliveryPhase] = useState<'idle' | 'to_store' | 'at_store' | 'to_customer' | 'delivered'>('idle');
+  const [eta, setEta] = useState(0);
 
   const pendingOrders = state.orders.filter(o => o.status === 'pending');
-  const activeOrders = state.orders.filter(o => o.status === 'assigned');
-
+  const activeOrders = state.orders.filter(o => 
+    o.status === 'assigned' || o.status === 'picking' || o.status === 'delivering'
+  );
+  
   const currentOrders = activeOrders.length > 0 ? activeOrders : pendingOrders;
   const isActive = activeOrders.length > 0;
   const isPending = activeOrders.length === 0 && pendingOrders.length > 0;
+
+  useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (mounted && activeOrders.length > 0) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => setMapCenter(`${pos.coords.latitude},${pos.coords.longitude}`),
+          () => console.log("Geolocation denied")
+        );
+      }
+    } else {
+      setMapCenter('New York');
+    }
+  }, [mounted, activeOrders.length]);
 
   const acceptOrder = () => {
     if (pendingOrders.length === 0) return;
     updateState(prev => ({
       ...prev,
       orders: prev.orders.map(o =>
-        o.status === 'pending' ? { ...o, status: 'assigned' } : o
+        o.status === 'pending' ? { ...o, status: 'assigned', phaseStartTime: Date.now() } : o
       )
     }));
   };
+
+  const updateOrderStatus = (newStatus: 'picking' | 'delivering' | 'completed') => {
+    updateState(prev => ({
+      ...prev,
+      orders: prev.orders.map(o =>
+        (o.status === 'assigned' || o.status === 'picking' || o.status === 'delivering') 
+          ? { ...o, status: newStatus, phaseStartTime: Date.now() } 
+          : o
+      )
+    }));
+  };
+
+  useEffect(() => {
+    let phaseTimer: NodeJS.Timeout;
+    if (isActive) {
+      if (deliveryPhase === 'idle') {
+        setDeliveryPhase('to_store');
+        setEta(5);
+      } else if (deliveryPhase === 'to_store') {
+        phaseTimer = setTimeout(() => {
+          setDeliveryPhase('at_store');
+          updateOrderStatus('picking');
+        }, 30000);
+      } else if (deliveryPhase === 'at_store') {
+        phaseTimer = setTimeout(() => {
+          setDeliveryPhase('to_customer');
+          setEta(10);
+          updateOrderStatus('delivering');
+        }, 5000); // 5 seconds wait
+      } else if (deliveryPhase === 'to_customer') {
+        phaseTimer = setTimeout(() => {
+          setDeliveryPhase('delivered');
+          updateOrderStatus('completed');
+        }, 60000);
+      }
+    } else {
+      setDeliveryPhase('idle');
+    }
+    return () => clearTimeout(phaseTimer);
+  }, [isActive, deliveryPhase]);
+
+  // SVG Animation Time Sync
+  useEffect(() => {
+    if (svgRef.current && currentOrders[0]?.phaseStartTime) {
+      const elapsed = (Date.now() - currentOrders[0].phaseStartTime) / 1000;
+      // Small timeout to ensure DOM is ready and animateMotion is mounted
+      setTimeout(() => {
+        if (svgRef.current) {
+          svgRef.current.setCurrentTime(Math.max(0, elapsed));
+        }
+      }, 50);
+    }
+  }, [deliveryPhase, currentOrders[0]?.phaseStartTime]);
+
+  // ETA Countdown logic for each phase
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (deliveryPhase === 'to_store') {
+      interval = setInterval(() => {
+        setEta(prev => Math.max(0, prev - 1));
+      }, (30 / 5) * 1000); // 30s to simulate 5 mins -> 6s per min
+    } else if (deliveryPhase === 'to_customer') {
+      interval = setInterval(() => {
+        setEta(prev => Math.max(0, prev - 1));
+      }, (60 / 10) * 1000); // 60s to simulate 10 mins -> 6s per min
+    }
+    return () => clearInterval(interval);
+  }, [deliveryPhase]);
+
+  if (!mounted) return null;
 
   const totalPrice = currentOrders.reduce((sum, o) => sum + o.price, 0);
   const batchId = currentOrders.length > 0 ? currentOrders[0].id : '';
@@ -46,69 +138,178 @@ export default function RiderApp() {
     }, {} as Record<string, typeof allItems[0]>)
   );
 
+  const handleMapPointerDown = (e: React.PointerEvent) => {
+    setIsDraggingMap(true);
+    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+  };
+
+  const handleMapPointerMove = (e: React.PointerEvent) => {
+    if (!isDraggingMap) return;
+    setPan({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMapPointerUp = () => {
+    setIsDraggingMap(false);
+  };
+
   return (
     <main className="min-h-screen bg-[#F4F4F6] text-black flex flex-col relative overflow-hidden font-sans">
       {isActive ? (
         <>
-          {/* THE DEMO FAKE MAP (No Google Maps API) */}
-          <div className="absolute inset-0 z-0 bg-[#E8EAED] animate-[reveal_0.5s_ease-out]">
-            {/* Fake Streets Grid */}
-            <svg className="absolute inset-0 w-full h-full opacity-30" width="100%" height="100%">
-              <pattern id="grid" width="80" height="80" patternUnits="userSpaceOnUse">
-                <path d="M 80 0 L 0 80 M 0 0 L 80 80" fill="none" stroke="#9CA3AF" strokeWidth="0.75"/>
-              </pattern>
-              <rect width="100%" height="100%" fill="url(#grid)" />
-            </svg>
-            
-            {/* Fake street names scattered around */}
-            <div className="absolute top-[25%] left-[15%] text-[11px] text-gray-500 font-bold transform -rotate-45 tracking-widest uppercase">Harrison St</div>
-            <div className="absolute top-[40%] left-[30%] text-[11px] text-gray-500 font-bold transform -rotate-45 tracking-widest uppercase">7th St</div>
-            <div className="absolute top-[60%] left-[20%] text-[11px] text-gray-500 font-bold tracking-widest uppercase">Utah St</div>
-            <div className="absolute top-[50%] left-[60%] text-[11px] text-gray-500 font-bold tracking-widest uppercase">Mariposa St</div>
-            <div className="absolute top-[75%] left-[55%] text-[11px] text-gray-400 font-black uppercase tracking-[0.2em]">POTRERO HILL</div>
+          {/* THE REAL MAP */}
+          <div 
+            className="absolute inset-0 z-0 bg-[#E5E3DF] animate-[reveal_0.5s_ease-out] overflow-hidden cursor-grab active:cursor-grabbing"
+            onPointerDown={handleMapPointerDown}
+            onPointerMove={handleMapPointerMove}
+            onPointerUp={handleMapPointerUp}
+            onPointerLeave={handleMapPointerUp}
+          >
+            {/* Custom Zoom Controls */}
+            <div className="absolute inset-0 z-50 pointer-events-none flex flex-col gap-3 items-end justify-start p-6 top-[15%] right-0 md:right-4">
+              <button 
+                onClick={() => setZoomLevel(prev => Math.min(prev + 0.3, 3))} 
+                className="w-12 h-12 bg-white rounded-2xl shadow-xl border border-gray-100 flex items-center justify-center pointer-events-auto text-black text-2xl font-black hover:bg-gray-50 active:scale-95 transition-all"
+              >
+                +
+              </button>
+              <button 
+                onClick={() => setZoomLevel(prev => Math.max(prev - 0.3, 0.5))} 
+                className="w-12 h-12 bg-white rounded-2xl shadow-xl border border-gray-100 flex items-center justify-center pointer-events-auto text-black text-3xl font-black hover:bg-gray-50 active:scale-95 transition-all leading-none pb-1"
+              >
+                -
+              </button>
+            </div>
 
-            {/* Blue Navigation Path */}
-            <svg className="absolute inset-0 w-full h-full z-10 drop-shadow-md" preserveAspectRatio="none" viewBox="0 0 100 100">
-              <path d="M 20 30 L 35 20 L 45 35 L 60 20 L 70 45 L 80 55 L 75 80" vectorEffect="non-scaling-stroke" fill="none" stroke="#2563EB" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+            <div 
+              className={`w-full h-full origin-center transition-transform ease-[cubic-bezier(0.16,1,0.3,1)] ${isDraggingMap ? 'duration-0' : 'duration-700'}`}
+              style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoomLevel})` }}
+            >
+              {/* Embedded Google Map */}
+              <iframe 
+                  src={`https://maps.google.com/maps?q=${mapCenter}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
+                  className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.85] mix-blend-luminosity grayscale-[30%]"
+                  style={{ border: 0 }} 
+                  allowFullScreen 
+                  loading="lazy" 
+                  referrerPolicy="no-referrer-when-downgrade"
+              ></iframe>
               
-              {/* Pickup Marker on map */}
-              <circle cx="75" cy="80" r="1.5" fill="#000" stroke="#2563EB" strokeWidth="0.5" />
-              {/* Dropoff Marker on map */}
-              <path d="M 75 88 Q 75 86 74 86 A 1.5 1.5 0 1 1 76 86 Q 75 86 75 88" fill="#000" />
-            </svg>
+              {/* Hidden Paths purely for animation reference */}
+              <svg ref={svgRef} key={deliveryPhase} className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 100 1150 800" preserveAspectRatio="xMidYMid meet">
+                <path id="toStoreRoute" d="M 150,350 L -50,350 L -50,750 L 150,750" fill="none" />
+                <path id="toCustomerRoute" d="M 150,750 L 150,550 L 350,550 L 350,350 L 550,350 L 550,250 L 850,250 L 850,450 L 1000,450" fill="none" />
+                
+                {/* Visible Combined Route */}
+                <path 
+                  d="M 150,350 L -50,350 L -50,750 L 150,750 L 150,550 L 350,550 L 350,350 L 550,350 L 550,250 L 850,250 L 850,450 L 1000,450" 
+                  fill="none" 
+                  stroke="#2B64E3" 
+                  strokeWidth="8" 
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="opacity-90 drop-shadow-md"
+                />
 
-            {/* Car / Rider Animation */}
-            <style>{`
-              @keyframes ridePath {
-                0%   { top: 30%; left: 20%; transform: translate(-50%, -50%) rotate(56deg); }
-                14.9% { top: 20%; left: 35%; transform: translate(-50%, -50%) rotate(56deg); }
-                15%  { top: 20%; left: 35%; transform: translate(-50%, -50%) rotate(146deg); }
-                24.9% { top: 35%; left: 45%; transform: translate(-50%, -50%) rotate(146deg); }
-                25%  { top: 35%; left: 45%; transform: translate(-50%, -50%) rotate(45deg); }
-                39.9% { top: 20%; left: 60%; transform: translate(-50%, -50%) rotate(45deg); }
-                40%  { top: 20%; left: 60%; transform: translate(-50%, -50%) rotate(158deg); }
-                54.9% { top: 45%; left: 70%; transform: translate(-50%, -50%) rotate(158deg); }
-                55%  { top: 45%; left: 70%; transform: translate(-50%, -50%) rotate(135deg); }
-                74.9% { top: 55%; left: 80%; transform: translate(-50%, -50%) rotate(135deg); }
-                75%  { top: 55%; left: 80%; transform: translate(-50%, -50%) rotate(191deg); }
-                100% { top: 80%; left: 75%; transform: translate(-50%, -50%) rotate(191deg); }
-              }
-              .animate-ride {
-                animation: ridePath 10s linear forwards;
-              }
-            `}</style>
-            
-            {/* The animated Car representing the Rider */}
-            <div className="absolute z-20 animate-ride w-6 h-10 bg-[#111] rounded-[6px] shadow-2xl flex items-center justify-center border border-gray-700">
-              <div className="w-3.5 h-6 bg-gray-900 rounded-sm"></div>
-            </div>
+                {/* Rider Start Pin */}
+                <g transform="translate(150, 350)">
+                  <circle cx="0" cy="0" r="6" fill="#10B981" />
+                  <foreignObject x="-40" y="-35" width="80" height="26">
+                    <div className="bg-white px-2.5 py-1 rounded-md text-[10px] font-bold shadow-sm border border-gray-200 flex items-center justify-center gap-1.5 w-max mx-auto text-green-700">
+                      Rider
+                    </div>
+                  </foreignObject>
+                </g>
+                
+                {/* Pickup Pin */}
+                <g transform="translate(150, 750)">
+                  <circle cx="0" cy="0" r="6" fill="black" />
+                  <foreignObject x="-40" y="-35" width="80" height="26">
+                    <div className="bg-white px-2.5 py-1 rounded-md text-[10px] font-bold shadow-sm border border-gray-200 flex items-center justify-center gap-1.5 w-max mx-auto">
+                      <svg className="w-2.5 h-2.5 text-black" fill="currentColor" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg> Pickup
+                    </div>
+                  </foreignObject>
+                </g>
 
-            {/* Map Markers Text Labels */}
-            <div className="absolute top-[80%] left-[75%] translate-x-3 -translate-y-5 bg-white px-2.5 py-1.5 rounded-lg shadow-md text-[10px] font-bold z-10 flex items-center gap-1.5 text-gray-800">
-              ✎ Pickup
-            </div>
-            <div className="absolute top-[88%] left-[75%] translate-x-3 -translate-y-2 bg-white px-2.5 py-1.5 rounded-lg shadow-md text-[10px] font-bold z-10 flex items-center gap-1.5 text-gray-800">
-              ✎ Dropoff
+                {/* Dropoff Pin */}
+                <g transform="translate(1000, 450)">
+                  <circle cx="0" cy="0" r="7" fill="black" />
+                  <circle cx="0" cy="0" r="20" fill="#2B64E3" className="opacity-20 animate-ping" />
+                  <foreignObject x="-40" y="-35" width="80" height="26">
+                    <div className="bg-white px-2.5 py-1 rounded-md text-[10px] font-bold shadow-sm border border-gray-200 flex items-center justify-center gap-1.5 w-max mx-auto">
+                       <svg className="w-2.5 h-2.5 text-black" fill="currentColor" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg> Dropoff
+                    </div>
+                  </foreignObject>
+                </g>
+
+                {/* Top-down vehicle dynamic rendering based on phase */}
+                {deliveryPhase === 'to_store' && (
+                  <g key="to_store">
+                    <foreignObject x="-24" y="-12" width="48" height="24">
+                      <div className="w-full h-full bg-[#1A1A1A] rounded-md shadow-2xl border border-gray-700 relative">
+                         {/* Windshield */}
+                         <div className="absolute right-3 top-1 bottom-1 w-2 bg-gray-900 rounded-sm"></div>
+                         <div className="absolute left-2 top-1 bottom-1 w-1.5 bg-gray-900 rounded-sm"></div>
+                         {/* Headlights (right side is the front) */}
+                         <div className="absolute right-0 top-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                         <div className="absolute right-0 bottom-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                         {/* Taillights */}
+                         <div className="absolute left-0 top-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
+                         <div className="absolute left-0 bottom-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
+                      </div>
+                    </foreignObject>
+                    <animateMotion dur="30s" repeatCount="1" fill="freeze" rotate="auto">
+                      <mpath href="#toStoreRoute" />
+                    </animateMotion>
+                  </g>
+                )}
+
+                {deliveryPhase === 'at_store' && (
+                  <g transform="translate(150, 750) rotate(0)">
+                    <foreignObject x="-24" y="-12" width="48" height="24">
+                      <div className="w-full h-full bg-[#1A1A1A] rounded-md shadow-2xl border border-gray-700 relative">
+                         <div className="absolute right-3 top-1 bottom-1 w-2 bg-gray-900 rounded-sm"></div>
+                         <div className="absolute left-2 top-1 bottom-1 w-1.5 bg-gray-900 rounded-sm"></div>
+                         <div className="absolute right-0 top-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                         <div className="absolute right-0 bottom-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                         <div className="absolute left-0 top-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444] animate-pulse"></div>
+                         <div className="absolute left-0 bottom-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444] animate-pulse"></div>
+                      </div>
+                    </foreignObject>
+                  </g>
+                )}
+
+                {deliveryPhase === 'to_customer' && (
+                  <g key="to_customer">
+                    <foreignObject x="-24" y="-12" width="48" height="24">
+                      <div className="w-full h-full bg-[#1A1A1A] rounded-md shadow-2xl border border-gray-700 relative">
+                         <div className="absolute right-3 top-1 bottom-1 w-2 bg-gray-900 rounded-sm"></div>
+                         <div className="absolute left-2 top-1 bottom-1 w-1.5 bg-gray-900 rounded-sm"></div>
+                         <div className="absolute right-0 top-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                         <div className="absolute right-0 bottom-1 w-1 h-1.5 bg-white rounded-full shadow-[2px_0_6px_#fff]"></div>
+                         <div className="absolute left-0 top-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
+                         <div className="absolute left-0 bottom-1 w-0.5 h-1.5 bg-red-500 rounded-full shadow-[-2px_0_4px_#ef4444]"></div>
+                      </div>
+                    </foreignObject>
+                    <animateMotion dur="60s" repeatCount="1" fill="freeze" rotate="auto">
+                      <mpath href="#toCustomerRoute" />
+                    </animateMotion>
+                  </g>
+                )}
+                
+                {deliveryPhase === 'delivered' && (
+                  <g transform="translate(1000, 450) rotate(0)">
+                    <foreignObject x="-24" y="-12" width="48" height="24">
+                      <div className="w-full h-full bg-[#1A1A1A] rounded-md shadow-2xl border border-gray-700 relative opacity-50 transition-opacity">
+                         <div className="absolute right-3 top-1 bottom-1 w-2 bg-gray-900 rounded-sm"></div>
+                         <div className="absolute left-2 top-1 bottom-1 w-1.5 bg-gray-900 rounded-sm"></div>
+                      </div>
+                    </foreignObject>
+                  </g>
+                )}
+              </svg>
             </div>
           </div>
 
@@ -127,8 +328,13 @@ export default function RiderApp() {
 
           {/* FLOATING INFO */}
           <div className="absolute bottom-[35%] left-6 right-6 z-20 pointer-events-none">
-             <h2 className="text-[22px] font-black text-gray-900 drop-shadow-md bg-white/70 w-fit px-3 py-1 rounded-xl backdrop-blur-md mb-1">Navigating to Store</h2>
-             <p className="text-gray-800 font-bold text-sm mb-5 bg-white/70 w-fit px-3 py-1 rounded-lg backdrop-blur-md">License Plate: <span className="bg-gray-200 px-1.5 py-0.5 rounded text-black shadow-sm">RDR-842</span></p>
+             <h2 className="text-[22px] font-black text-gray-900 drop-shadow-md bg-white/70 w-fit px-3 py-1 rounded-xl backdrop-blur-md mb-1">
+               {deliveryPhase === 'to_store' && `Navigating to Store (${eta} min)`}
+               {deliveryPhase === 'at_store' && `Picking up order...`}
+               {deliveryPhase === 'to_customer' && `Heading to Customer (${eta} min)`}
+               {deliveryPhase === 'delivered' && `Order Delivered!`}
+             </h2>
+             <p className="text-gray-800 font-bold text-sm mb-5 bg-white/70 w-fit px-3 py-1 rounded-lg backdrop-blur-md">License Plate: <span className="bg-gray-200 px-1.5 py-0.5 rounded font-mono text-black shadow-sm">MH 12 AB 1234</span></p>
              <button className="bg-white text-black font-bold text-[13px] px-5 py-3 rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.15)] border border-gray-100 flex items-center gap-2 pointer-events-auto active:scale-95 transition-transform">
                View Order Details
                <span className="bg-black text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-black">↗</span>

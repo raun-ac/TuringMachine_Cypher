@@ -19,6 +19,7 @@ export type Order = {
   status: 'cart' | 'pending' | 'assigned' | 'picking' | 'delivering' | 'completed';
   items: OrderItem[];
   timestamp: number;
+  phaseStartTime?: number;
 };
 
 export type InventoryItem = {
