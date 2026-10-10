@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
-import { useAppStore } from '@/lib/store';
+import { useAppStore, Order } from '@/lib/store';
 
 export default function RiderApp() {
   const { state, updateState } = useAppStore();
@@ -14,6 +14,7 @@ export default function RiderApp() {
   const [isDraggingMap, setIsDraggingMap] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
+  const [completedOrderPopup, setCompletedOrderPopup] = useState<Order | null>(null);
   
   const [deliveryPhase, setDeliveryPhase] = useState<'idle' | 'to_store' | 'at_store' | 'to_customer' | 'delivered'>('idle');
   const [eta, setEta] = useState(0);
@@ -84,6 +85,9 @@ export default function RiderApp() {
         phaseTimer = setTimeout(() => {
           setDeliveryPhase('delivered');
           updateOrderStatus('completed');
+          if (currentOrders.length > 0) {
+            setCompletedOrderPopup(currentOrders[0]);
+          }
         }, 60000);
       }
     } else {
@@ -541,6 +545,28 @@ export default function RiderApp() {
              
              <button onClick={() => setShowRiderDetails(false)} className="w-full py-4 bg-black text-white rounded-xl font-bold active:scale-95 transition-transform shadow-lg">
                Close Profile
+             </button>
+          </div>
+        </div>
+      )}
+
+      {/* DELIVERY COMPLETED POPUP */}
+      {completedOrderPopup && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-reveal">
+          <div className="bg-white p-8 md:p-10 rounded-[2rem] text-center max-w-sm w-full shadow-2xl relative overflow-hidden flex flex-col items-center">
+             <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-inner">
+               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+             </div>
+             <h3 className="text-2xl font-black uppercase tracking-tighter text-black mb-2">Delivery Successful!</h3>
+             <p className="text-gray-500 font-medium mb-6">Order <span className="font-bold text-black">{completedOrderPopup.id}</span> has been successfully handed over to the customer.</p>
+             
+             <div className="bg-gray-50 rounded-xl w-full py-4 mb-8 border border-gray-100 shadow-inner">
+               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Total Time Taken</p>
+               <p className="text-2xl font-black text-black">15 mins</p>
+             </div>
+             
+             <button onClick={() => setCompletedOrderPopup(null)} className="w-full bg-black text-white font-bold uppercase tracking-widest text-sm py-4 rounded-xl hover:bg-black/80 transition-colors active:scale-95">
+               Find New Orders
              </button>
           </div>
         </div>
