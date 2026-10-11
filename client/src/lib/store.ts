@@ -1,7 +1,5 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
-import { db } from "./firebase-config";
 
 const STORE_KEY = "antigravity_hackathon_state_v4";
 
@@ -97,39 +95,123 @@ export const defaultState: AppState = {
 let memoryState = defaultState;
 const listeners = new Set<(state: AppState) => void>();
 
+let lastLocalUpdate = 0;
+
 export function useAppStore() {
   const [state, setState] = useState<AppState>(defaultState);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      doc(db, "hackathon", "sharedState"),
-      (docSnap: any) => {
-        if (docSnap.exists()) {
-          const next = docSnap.data() as AppState;
-          next.inventory = { ...defaultState.inventory, ...next.inventory };
-          memoryState = next;
-          setState(next);
-          listeners.forEach((l) => l(next));
-        } else {
-          setDoc(doc(db, "hackathon", "sharedState"), defaultState);
-        }
-      },
-    );
+    const stored = localStorage.getItem(STORE_KEY);
+    if (stored) {
+      let parsed: any = {};
+      try {
+        parsed = JSON.parse(stored) || {};
+      } catch (e) {
+        console.warn("Failed to parse state from localStorage", e);
+      }
+      memoryState = {
+        ...defaultState,
+        ...parsed,
+        inventory: { ...defaultState.inventory, ...(parsed.inventory || {}) },
+        auth: { ...defaultState.auth, ...(parsed.auth || {}) },
+        orders: Array.isArray(parsed.orders) ? parsed.orders : [],
+      };
+      setState(memoryState);
+    } else {
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(defaultState));
+      } catch (e) {}
+      memoryState = defaultState;
+    }
 
     const listener = (newState: AppState) => setState(newState);
     listeners.add(listener);
 
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === STORE_KEY && e.newValue) {
+        const next = JSON.parse(e.newValue);
+        memoryState = next;
+        listeners.forEach((l) => l(next));
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+
+    // Cloud sync polling
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/state");
+        const json = await res.json();
+        if (json?.data) {
+          const cloudUpdated = json.data.lastUpdated || 0;
+
+          // Ignore cloud state if we've made a local update very recently (prevents overwriting local cart before PUT finishes)
+          if (cloudUpdated < lastLocalUpdate) {
+            return;
+          }
+
+          const cloudOrders = json.data.orders || [];
+          const cloudInventory = json.data.inventory || memoryState.inventory;
+          const cloudRider =
+            json.data.riderOnline !== undefined
+              ? json.data.riderOnline
+              : memoryState.riderOnline;
+
+          if (
+            JSON.stringify(cloudOrders) !== JSON.stringify(memoryState.orders) ||
+            JSON.stringify(cloudInventory) !==
+              JSON.stringify(memoryState.inventory) ||
+            cloudRider !== memoryState.riderOnline
+          ) {
+            const merged: AppState = {
+              ...memoryState,
+              orders: cloudOrders,
+              inventory: cloudInventory,
+              riderOnline: cloudRider,
+            };
+            memoryState = merged;
+            listeners.forEach((l) => l(merged));
+            try {
+              localStorage.setItem(STORE_KEY, JSON.stringify(merged));
+            } catch (e) {}
+          }
+        }
+      } catch (e) {
+        // fail silently for polling
+      }
+    }, 2000);
+
     return () => {
       listeners.delete(listener);
-      unsubscribe();
+      window.removeEventListener("storage", handleStorage);
+      clearInterval(interval);
     };
   }, []);
 
   const updateState = useCallback((updater: (prev: AppState) => AppState) => {
     const next = updater(memoryState);
     memoryState = next;
-    setDoc(doc(db, "hackathon", "sharedState"), next);
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify(next));
+    } catch (e) {
+      console.warn("localStorage setItem failed", e);
+    }
     listeners.forEach((l) => l(next));
+
+    lastLocalUpdate = Date.now();
+
+    // Push updates to cloud API, excluding auth
+    const cloudPayload = {
+      orders: next.orders,
+      inventory: next.inventory,
+      riderOnline: next.riderOnline,
+      lastUpdated: lastLocalUpdate,
+    };
+
+    fetch("/api/state", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: cloudPayload }),
+    }).catch(() => {});
   }, []);
 
   return { state, updateState };

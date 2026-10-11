@@ -184,7 +184,7 @@ export default function CustomerApp() {
     updateState(prev => ({
       ...prev,
       inventory: newInventory,
-      orders: [newOrder, ...prev.orders]
+      orders: [newOrder, ...(prev.orders || [])]
     }));
 
     setConfiguringId(null);
@@ -505,7 +505,6 @@ export default function CustomerApp() {
                           <div className="flex-1 min-w-[120px]">
                             <h4 className="font-black text-sm uppercase tracking-tight text-black">{order.recipe}</h4>
                             <div className="flex flex-col gap-2 mt-1 items-start">
-                              <p className="text-xs text-gray-400 line-clamp-1">{recipe?.description}</p>
                               <button
                                 onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
                                 className="text-[10px] font-black text-yellow-500 uppercase tracking-widest hover:text-yellow-600 transition-colors w-fit flex items-center gap-1 bg-yellow-50 px-2.5 py-1 rounded-full border border-yellow-100"

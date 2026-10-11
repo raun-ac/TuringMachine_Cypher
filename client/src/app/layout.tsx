@@ -9,8 +9,8 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Antigravity Sprint",
-  description: "One-tap recipe to cart",
+  title: "DishDash",
+  description: "Fresh Ingredients. Healthier Living.",
 };
 
 export default function RootLayout({
