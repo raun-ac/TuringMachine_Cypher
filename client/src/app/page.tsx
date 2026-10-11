@@ -6,9 +6,9 @@ export default function Home() {
     <main className="min-h-screen bg-[#FFFDF7] text-black p-6 md:p-12 flex flex-col items-center justify-center">
       <div className="w-full max-w-3xl">
         <div className="flex justify-center mb-16 relative w-full h-[300px] md:h-[400px]">
-          <Image 
-            src="/home-logo.jpg" 
-            alt="DishDash - Fresh Ingredients. Healthier Living." 
+          <Image
+            src="/home-logo.jpg"
+            alt="DishDash - Fresh Ingredients. Healthier Living."
             fill
             className="object-contain"
             priority
